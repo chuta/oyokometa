@@ -1,0 +1,6 @@
+{
+  "version": "0.0.0",
+  "holdout_fraction": 0.2,
+  "images": [],
+  "notes": "Minimum 3000 labelled images before AI labels. Groups A–F per PRD §12. Include Tecno/Infinix/itel in group A."
+}

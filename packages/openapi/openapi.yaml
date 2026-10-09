@@ -1,0 +1,106 @@
+openapi: 3.1.0
+info:
+  title: Oyokometa API
+  version: 0.1.0
+  description: Contract for /api/v1. Findings object is the only presentation input.
+servers:
+  - url: /api/v1
+paths:
+  /uploads:
+    post:
+      summary: Get a signed upload URL and asset ID
+      operationId: createUpload
+  /analyses:
+    post:
+      summary: Start an analysis job
+      operationId: createAnalysis
+  /analyses/{id}:
+    get:
+      summary: Status, stage, findings
+      operationId: getAnalysis
+    delete:
+      summary: Delete image, evidence, reports
+      operationId: deleteAnalysis
+  /analyses/{id}/evidence:
+    get:
+      summary: Evidence items (Deep)
+      operationId: getEvidence
+  /analyses/{id}/metadata:
+    get:
+      summary: Normalised and raw metadata (Deep)
+      operationId: getMetadata
+  /analyses/{id}/upgrade:
+    post:
+      summary: Quick to Deep on the same asset
+      operationId: upgradeAnalysis
+  /analyses/{id}/reports:
+    post:
+      summary: Generate report
+      operationId: createReport
+  /analyses/{id}/share-links:
+    post:
+      summary: Create share link
+      operationId: createShareLink
+  /reports/{id}:
+    get:
+      summary: Download PDF or JSON
+      operationId: getReport
+  /reports/check:
+    post:
+      summary: Confirm a report file hash
+      operationId: checkReport
+  /credits:
+    get:
+      summary: Wallet balance
+  /credits/ledger:
+    get:
+      summary: Ledger history
+  /credits/products:
+    get:
+      summary: Credit packs
+  /payments/intents:
+    post:
+      summary: Start a purchase
+  /payments/webhooks/{provider}:
+    post:
+      summary: Provider callbacks
+  /provenance:
+    post:
+      summary: Register a provenance record
+  /provenance/{id}:
+    get:
+      summary: Read a record
+  /provenance/{id}/events:
+    post:
+      summary: Add declaration, visibility, withdraw
+  /verify:
+    post:
+      summary: Check sha256/phash against records
+  /verify/{public_id}:
+    get:
+      summary: Public record view
+  /disputes:
+    post:
+      summary: File a dispute
+  /disputes/confirm:
+    post:
+      summary: Confirm a dispute email
+  /verify/file:
+    post:
+      summary: Hash a file on the server for similarity
+  /credits/actions:
+    get:
+      summary: Current action prices in credits
+components:
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }

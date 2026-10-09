@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap");
+
+:root {
+  color: #1c1917;
+  background: #f7f4ef;
+}
+
+body {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 600;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.tier-tag {
+  display: inline-block;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid #d9d2c8;
+  padding: 0.1rem 0.4rem;
+  margin-right: 0.4rem;
+}
+.tier-verified {
+  background: #ece8e1;
+}
+.tier-detected {
+  background: #f7f4ef;
+}
+.tier-inferred {
+  border-style: dashed;
+}
+.tier-declared {
+  background: #e8ece9;
+}
+
+.limitations {
+  border-top: 1px solid #d9d2c8;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+}
+.limitations h2 {
+  font-size: 1.1rem;
+}
+
+.dashboard section {
+  margin: 2rem 0;
+}
+.finding-list button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #d9d2c8;
+}
+.drawer {
+  border: 1px solid #d9d2c8;
+  padding: 1.25rem;
+  margin: 1rem 0;
+  background: #fff;
+}
+.timeline {
+  list-style: none;
+  padding: 0;
+}
+.timeline li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #ece8e1;
+}
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 2rem 0;
+}
+.actions button,
+.actions a,
+.btn {
+  font-family: "IBM Plex Sans", sans-serif;
+  background: #3f4f46;
+  color: #f7f4ef;
+  padding: 0.6rem 1rem;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.actions a[href="/analyze"],
+.btn-secondary {
+  background: transparent;
+  color: #1c1917;
+  border: 1px solid #1c1917;
+}
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: #6b635b;
+}
+.confidence {
+  color: #6b635b;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.drop {
+  border: 1px dashed #6b635b;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background: #fff;
+}
+.nav {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+.nav a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.nav a:hover,
+.nav a:focus {
+  border-bottom-color: #1c1917;
+}
+.site {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+.wide {
+  max-width: 64rem;
+}
+.create-cols {
+  display: grid;
+  gap: 1.5rem;
+}
+@media (min-width: 768px) {
+  .create-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 768px) {
+  .site {
+    padding-top: 2.5rem;
+  }
+}

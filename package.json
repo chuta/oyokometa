@@ -1,0 +1,22 @@
+{
+  "name": "oyokometa",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "turbo dev --filter=@oyokometa/web --filter=@oyokometa/api --filter=@oyokometa/worker",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:generate": "pnpm --filter @oyokometa/db generate",
+    "db:migrate": "pnpm --filter @oyokometa/db migrate",
+    "db:studio": "pnpm --filter @oyokometa/db studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

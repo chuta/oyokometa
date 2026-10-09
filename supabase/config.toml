@@ -1,0 +1,11 @@
+# Linked to https://vpvhshoxwaorrwtaxvdb.supabase.co
+project_id = "vpvhshoxwaorrwtaxvdb"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 17

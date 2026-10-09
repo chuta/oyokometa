@@ -1,0 +1,26 @@
+{
+  "name": "@oyokometa/findings-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo ok",
+    "lint": "echo ok"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@oyokometa/config": "workspace:*",
+    "@oyokometa/evidence": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "react": "^19.0.0",
+    "typescript": "^5.7.3"
+  }
+}

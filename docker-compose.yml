@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: oyokometa
+      POSTGRES_PASSWORD: oyokometa
+      POSTGRES_DB: oyokometa
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oyokometa"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: oyokometa
+      MINIO_ROOT_PASSWORD: oyokometa-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio:/data
+
+  clamav:
+    image: clamav/clamav:1.4
+    ports:
+      - "3310:3310"
+    profiles: ["full"]
+
+volumes:
+  pgdata:
+  minio:

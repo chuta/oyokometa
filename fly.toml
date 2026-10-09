@@ -1,0 +1,36 @@
+# Oyokometa API on Fly Machines. Web stays on Netlify.
+# Deploy from repo root: fly deploy --ha=false
+app = "oyokometa-api"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1024mb"
+
+[mounts]
+  source = "okm_data"
+  destination = "/data"
+
+[env]
+  NODE_ENV = "production"
+  API_PORT = "4000"
+  INLINE_WORKER = "true"
+  STORAGE_DRIVER = "fs"
+  FS_STORAGE_DIR = "/data/storage"
+  AI_LABELS_ENABLED = "false"
+  RULESET_VERSION = "ruleset-1.0.0"
+  API_PUBLIC_URL = "https://oyokometa-api.fly.dev"
+  WEB_ORIGIN = "https://oyokometa-api.fly.dev,http://localhost:3000"
+  AUTH_URL = "https://oyokometa-api.fly.dev"
+  BANK_CURRENCY = "NGN"

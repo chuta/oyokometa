@@ -1,0 +1,16 @@
+# Split worker: deploy after REDIS_URL is set.
+# fly deploy --config infra/fly/worker.toml --ha=false --app oyokometa-worker
+app = "oyokometa-worker"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "apps/worker/Dockerfile"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1024mb"
+
+[env]
+  NODE_ENV = "production"
+  INLINE_WORKER = "false"
+  STORAGE_DRIVER = "fs"

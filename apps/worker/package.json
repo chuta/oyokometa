@@ -1,0 +1,37 @@
+{
+  "name": "@oyokometa/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pipeline": "./src/pipeline.ts",
+    "./hash": "./src/analyzers/hash.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/run.ts",
+    "start": "tsx src/run.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "echo ok"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.712.0",
+    "@oyokometa/config": "workspace:*",
+    "@oyokometa/db": "workspace:*",
+    "@oyokometa/evidence": "workspace:*",
+    "@oyokometa/shared": "workspace:*",
+    "drizzle-orm": "^0.38.3",
+    "dotenv": "^16.4.7",
+    "bullmq": "^5.34.5",
+    "exifr": "^7.1.3",
+    "ioredis": "^5.4.2",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
