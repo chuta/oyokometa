@@ -2,7 +2,7 @@ import { AnalyzeForm } from "@/components/AnalyzeForm";
 
 export default function CheckPage() {
   return (
-    <div>
+    <div className="page page-narrow">
       <p className="kicker">Election mode</p>
       <h1 className="text-3xl mb-2">Check an image</h1>
       <p className="text-muted mb-8">

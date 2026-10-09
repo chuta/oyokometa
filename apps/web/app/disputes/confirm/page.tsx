@@ -26,7 +26,7 @@ function ConfirmInner() {
   }, [token]);
 
   return (
-    <div>
+    <div className="page page-narrow">
       <h1 className="text-3xl mb-4">Dispute confirmation</h1>
       <p>{msg}</p>
     </div>

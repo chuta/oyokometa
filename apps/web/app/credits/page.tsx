@@ -51,8 +51,9 @@ export default function CreditsPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-3xl mb-4">Credits</h1>
+    <div className="page">
+      <p className="kicker">Account</p>
+      <h1 className="text-4xl mb-4">Credits</h1>
       {!signedIn ? (
         <p>
           <a href="/sign-in">Sign in</a> to buy credits.
@@ -60,9 +61,9 @@ export default function CreditsPage() {
       ) : (
         <p className="mb-6">Balance: {balance ?? "…"} credits</p>
       )}
-      <ul className="space-y-4">
+      <ul className="pack-grid">
         {products.map((p) => (
-          <li key={p.id} className="border border-line p-4 bg-white">
+          <li key={p.id} className="pack">
             <p>
               <strong>{p.name}</strong> — {p.credits} credits — {p.price_label}
             </p>

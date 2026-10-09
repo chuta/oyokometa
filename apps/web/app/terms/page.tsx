@@ -1,6 +1,6 @@
 export default function TermsPage() {
   return (
-    <article>
+    <article className="page page-narrow">
       <h1 className="text-3xl mb-4">Terms of use</h1>
       <p>
         Draft for Release 1. You may only submit files you are allowed to submit. Output is not a

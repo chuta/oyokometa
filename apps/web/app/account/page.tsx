@@ -31,7 +31,7 @@ export default function AccountPage() {
   if (!me) return <p>Loading…</p>;
   if (!me.user) {
     return (
-      <div>
+      <div className="page">
         <h1 className="text-3xl mb-4">Account</h1>
         <p>
           <a href="/sign-in">Sign in</a> to keep analyses, buy credits, and generate reports.
@@ -50,7 +50,7 @@ export default function AccountPage() {
   };
 
   return (
-    <div>
+    <div className="page">
       <h1 className="text-3xl mb-4">Account</h1>
       <p>{me.user.email}</p>
       <p className="mt-2">Credit balance: {balance ?? "…"}</p>

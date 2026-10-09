@@ -1,6 +1,6 @@
 export default function RegistrationTermsPage() {
   return (
-    <article>
+    <article className="page page-narrow">
       <h1 className="text-3xl mb-4">Registration terms</h1>
       <p>
         By registering a file you state that you have the right to register it. The signed record

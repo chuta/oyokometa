@@ -2,26 +2,47 @@ import { TRUST_LINE } from "@oyokometa/config";
 
 export default function HomePage() {
   return (
-    <div>
-      <p className="kicker">Image provenance</p>
-      <h1 className="text-4xl leading-tight mt-2 mb-4">What can this image tell you?</h1>
-      <p className="text-lg text-muted mb-8">{TRUST_LINE}</p>
-      <p className="mb-8 max-w-prose">
-        Upload an image. See what is verified, what is detected and what is inferred, and why. This
-        product analyzes files. It does not judge whether a depicted event happened.
-      </p>
-      <a className="btn" href="/analyze">
-        Analyze an image
-      </a>{" "}
-      <a className="btn-secondary btn" href="/create">
-        Create a record
-      </a>{" "}
-      <a className="btn-secondary btn" href="/verify">
-        Verify a file
-      </a>
-      <p className="mt-10 text-sm text-muted">
-        Still images only · JPEG, PNG, WebP, HEIC/HEIF, TIFF · 25 MB limit
-      </p>
-    </div>
+    <>
+      <section className="hero">
+        <div className="hero-inner">
+          <p className="kicker">Image provenance</p>
+          <h1>What can this image tell you?</h1>
+          <p className="lede">{TRUST_LINE}</p>
+          <p className="lede" style={{ marginTop: "1rem", fontSize: "1.02rem" }}>
+            Upload a file. See what is verified, what is detected and what is inferred, and why.
+            This product analyzes files. It does not judge whether a depicted event happened.
+          </p>
+          <div className="hero-actions">
+            <a className="action-card primary" href="/analyze">
+              <strong>Analyze an image</strong>
+              <span>Free Quick Scan. Separate facts from inference.</span>
+            </a>
+            <a className="action-card" href="/create">
+              <strong>Create a record</strong>
+              <span>Register these exact bytes, signed by the platform.</span>
+            </a>
+            <a className="action-card" href="/verify">
+              <strong>Verify a file</strong>
+              <span>Check whether a file matches a registered record.</span>
+            </a>
+          </div>
+          <p className="meta-line">Still images only · JPEG, PNG, WebP, HEIC/HEIF, TIFF · 25 MB limit</p>
+        </div>
+      </section>
+      <section className="pillars" aria-label="How statements are tagged">
+        <article className="pillar">
+          <h2>Verified</h2>
+          <p>Cryptographic checks that hold or fail. A match is a match of bytes, not of meaning.</p>
+        </article>
+        <article className="pillar">
+          <h2>Detected</h2>
+          <p>Read from the file: hashes, metadata, structure, Content Credentials when present.</p>
+        </article>
+        <article className="pillar">
+          <h2>Inferred</h2>
+          <p>Analysis that can be wrong. Lower-tier signals never override a higher tier.</p>
+        </article>
+      </section>
+    </>
   );
 }

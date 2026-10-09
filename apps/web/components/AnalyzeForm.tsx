@@ -111,9 +111,9 @@ export function AnalyzeForm() {
           if (blob) onFile(blob);
         }}
       >
-        <p>Drag and drop, paste, or choose a file</p>
+        <p className="text-lg font-medium">Drop, paste, or choose a file</p>
         <p className="text-sm text-muted mt-2">
-          {file ? file.name : "No file selected"}
+          {file ? file.name : "JPEG, PNG, WebP, HEIC/HEIF, TIFF · 25 MB"}
         </p>
         <input
           ref={input}

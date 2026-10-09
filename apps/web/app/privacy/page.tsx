@@ -1,6 +1,6 @@
 export default function PrivacyPage() {
   return (
-    <article>
+    <article className="page page-narrow">
       <h1 className="text-3xl mb-4">Privacy notice</h1>
       <p>
         This is a draft notice for Release 1. Counsel must confirm the data controller, hosting

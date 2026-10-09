@@ -37,17 +37,17 @@ export function ResultView({ id }: { id: string }) {
     };
   }, [id]);
 
-  if (err) return <p role="alert">{err}</p>;
+  if (err) return <p className="page" role="alert">{err}</p>;
   if (!data || (data.status !== "completed" && data.status !== "failed")) {
     return (
-      <p aria-live="polite">
+      <p className="page" aria-live="polite">
         {data ? `Working… ${data.stage.replaceAll("_", " ")}` : "Loading analysis"}
       </p>
     );
   }
   if (data.status === "failed") {
     return (
-      <div>
+      <div className="page">
         <h1 className="text-3xl">Could not complete this analysis</h1>
         <p className="mt-4">{data.error_message}</p>
         <a className="btn mt-6" href="/analyze">
@@ -124,8 +124,8 @@ export function ResultView({ id }: { id: string }) {
   };
 
   return (
-    <div>
-      <FindingsDashboard
+    <div className="page">
+      <FindingsDashboard>
         findings={data.findings}
         previewUrl={data.preview_url}
         onDelete={del}

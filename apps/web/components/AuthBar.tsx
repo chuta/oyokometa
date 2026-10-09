@@ -12,18 +12,24 @@ export function AuthBar() {
       .then(setMe)
       .catch(() => setMe({ user: null }));
   }, []);
-  if (!me) return null;
+  if (!me) return <span className="auth-slot" aria-hidden="true" />;
   if (!me.user) {
     return (
-      <a href="/sign-in" className="text-sm">
+      <a href="/sign-in" className="btn btn-ghost btn-compact">
         Sign in
       </a>
     );
   }
   return (
-    <span className="text-sm flex gap-3">
-      <a href="/account">{me.user.email}</a>
-      {me.user.role === "admin" ? <a href="/admin">Admin</a> : null}
+    <span className="auth-user">
+      <a href="/account" className="auth-email">
+        {me.user.email}
+      </a>
+      {me.user.role === "admin" ? (
+        <a href="/admin" className="btn btn-ghost btn-compact">
+          Admin
+        </a>
+      ) : null}
     </span>
   );
 }

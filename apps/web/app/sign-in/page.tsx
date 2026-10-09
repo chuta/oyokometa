@@ -26,14 +26,15 @@ export default function SignInPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-3xl mb-4">Sign in</h1>
-      <p className="text-muted mb-6">Email magic link. No passwords in the MVP.</p>
+    <div className="page page-narrow">
+      <p className="kicker">Account</p>
+      <h1 className="text-4xl mb-3">Sign in</h1>
+      <p className="text-muted mb-8">Email magic link. No passwords in the MVP.</p>
       <form onSubmit={send} className="space-y-4">
         <label className="block">
           Email
           <input
-            className="block w-full mt-1 border border-line p-2 bg-white"
+            className="block w-full mt-1"
             type="email"
             required
             value={email}

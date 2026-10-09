@@ -1,6 +1,6 @@
 export default function DisputePolicyPage() {
   return (
-    <article>
+    <article className="page page-narrow">
       <h1 className="text-3xl mb-4">Dispute and takedown</h1>
       <p>
         Anyone can file a complaint on a public registration. We send a confirmation link to the

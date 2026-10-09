@@ -44,7 +44,7 @@ export default function AdminPage() {
   if (err) return <p role="alert">{err}</p>;
 
   return (
-    <div>
+    <div className="page">
       <h1 className="text-3xl mb-4">Admin</h1>
       <form onSubmit={lookup} className="mb-8 flex gap-2">
         <input

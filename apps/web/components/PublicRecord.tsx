@@ -99,7 +99,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
   };
 
   return (
-    <div>
+    <div className="page">
       {view.record_problem ? (
         <>
           <h1 className="text-3xl mb-2">{view.record_problem.headline}</h1>

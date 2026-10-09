@@ -53,13 +53,13 @@ export default function PayPage() {
   if (!pay) return <p>Loading payment…</p>;
 
   return (
-    <div>
+    <div className="page page-narrow">
       <h1 className="text-3xl mb-4">Bank transfer</h1>
       <p className="mb-4">
         Transfer <strong>{pay.amount_label}</strong> for <strong>{pay.credits} credits</strong>. Put
         this exact reference in the narration / description:
       </p>
-      <p className="mono text-xl border border-line p-4 bg-white mb-6">{pay.reference}</p>
+      <p className="mono text-xl border border-line p-4 mb-6">{pay.reference}</p>
       <dl className="space-y-2">
         <div>
           <dt className="text-muted text-sm">Bank</dt>

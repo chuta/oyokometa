@@ -1,48 +1,50 @@
 import type { Metadata } from "next";
+import { IBM_Plex_Mono, IBM_Plex_Sans, Outfit } from "next/font/google";
 import "./globals.css";
 import { PRODUCT_NAME, TRUST_LINE } from "@oyokometa/config";
-import { AuthBar } from "@/components/AuthBar";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const plex = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: PRODUCT_NAME,
   description: TRUST_LINE,
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${outfit.variable} ${plex.variable} ${mono.variable}`}>
       <body>
         <a className="sr-only" href="#main">
           Skip to content
         </a>
-        <div className="site">
-          <header className="flex items-baseline justify-between gap-4 mb-10">
-            <a href="/" className="font-semibold tracking-tight text-lg no-underline text-ink">
-              {PRODUCT_NAME}
-            </a>
-            <nav className="nav" aria-label="Primary">
-              <a href="/analyze">Analyze</a>
-              <a href="/create">Create</a>
-              <a href="/verify">Verify</a>
-              <a href="/how-it-works">How it works</a>
-              <a href="/sample">Sample report</a>
-              <a href="/pricing">Pricing</a>
-              <a href="/credits">Credits</a>
-              <a href="/account">Account</a>
-              <a href="/privacy">Privacy</a>
-              <AuthBar />
-            </nav>
-          </header>
+        <div className="shell">
+          <SiteHeader />
           <main id="main">{children}</main>
-          <footer className="mt-16 pt-6 border-t border-line text-sm text-muted flex flex-wrap gap-4">
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/acceptable-use">Acceptable use</a>
-            <a href="/cookies">Cookies</a>
-            <a href="/registration-terms">Registration terms</a>
-            <a href="/dispute-policy">Disputes</a>
-            <a href="/abuse">Report abuse</a>
-          </footer>
+          <SiteFooter />
         </div>
       </body>
     </html>

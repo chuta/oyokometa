@@ -11,7 +11,7 @@ export default async function SharePage({ params }: { params: Promise<{ publicId
   if (!res.ok) notFound();
   const data = await res.json();
   return (
-    <div>
+    <div className="page">
       <p className="kicker">Shared analysis</p>
       <p className="mb-4">
         {data.banner}. Acquisition time (UTC): {data.acquisition_time_utc}

@@ -18,26 +18,39 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <article>
-      <h1 className="text-3xl mb-4">Pricing</h1>
-      <p className="mb-6">
+    <article className="page">
+      <p className="kicker">Pricing</p>
+      <h1 className="text-4xl mb-4">Credits, not a paywall on facts</h1>
+      <p className="text-muted mb-8 max-w-2xl">
         Quick Scan is free. Deep Analysis and reports spend credits. Prices come from the server, not
         this page.
       </p>
-      <ul className="space-y-4">
-        <li>Quick Scan — 0 credits</li>
-        <li>Deep Analysis — priced in credits (see your account)</li>
-        <li>Report (PDF + JSON) — priced in credits after Deep Analysis</li>
+      <ul className="pack-grid mb-10">
+        <li className="pack">
+          <strong>Quick Scan</strong>
+          <p className="text-muted mt-2 mb-0">0 credits</p>
+        </li>
+        <li className="pack">
+          <strong>Deep Analysis</strong>
+          <p className="text-muted mt-2 mb-0">Priced in credits on your account</p>
+        </li>
+        <li className="pack">
+          <strong>Report</strong>
+          <p className="text-muted mt-2 mb-0">PDF + JSON after Deep Analysis</p>
+        </li>
       </ul>
-      <h2 className="text-2xl mt-8 mb-3">Credit packs</h2>
-      <ul className="space-y-3">
+      <h2 className="text-2xl mb-4">Credit packs</h2>
+      <ul className="pack-grid">
         {products.map((p) => (
-          <li key={p.id} className="border border-line p-4 bg-white">
-            <strong>{p.name}</strong> — {p.credits} credits — {p.price_label}
+          <li key={p.id} className="pack">
+            <strong>{p.name}</strong>
+            <p className="mt-2 mb-0">
+              {p.credits} credits — {p.price_label}
+            </p>
           </li>
         ))}
       </ul>
-      <p className="mt-6">
+      <p className="mt-8 text-muted">
         Pay by bank transfer using a unique narration code. <a href="/credits">Buy credits</a>.{" "}
         <a href="/credits/terms">Credit terms</a>.
       </p>

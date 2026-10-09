@@ -1,6 +1,6 @@
 export default function AbusePage() {
   return (
-    <article>
+    <article className="page page-narrow">
       <h1 className="text-3xl mb-4">Report abuse</h1>
       <p>
         Email abuse@oyokometa.example with the page URL and a description. Facially valid reports
