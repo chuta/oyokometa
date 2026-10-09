@@ -125,7 +125,7 @@ export function ResultView({ id }: { id: string }) {
 
   return (
     <div className="page">
-      <FindingsDashboard>
+      <FindingsDashboard
         findings={data.findings}
         previewUrl={data.preview_url}
         onDelete={del}
