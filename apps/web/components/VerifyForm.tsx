@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BusyLabel, Spinner } from "./ActionStatus";
 
 async function sha256Hex(file: File) {
   const buf = await file.arrayBuffer();
@@ -78,9 +79,14 @@ export function VerifyForm({ publicId }: { publicId?: string }) {
         <input type="checkbox" checked={similar} onChange={(e) => setSimilar(e.target.checked)} /> Send
         the file to check visual similarity
       </label>
+      {busy ? (
+        <p className="mt-4">
+          <Spinner label={similar ? "Sending file for a similarity check" : "Hashing in this browser"} />
+        </p>
+      ) : null}
       <p className="mt-4">
         <button className="btn" type="button" disabled={!file || busy} onClick={run}>
-          {busy ? "Checking…" : "Check this file"}
+          <BusyLabel busy={busy} idle="Check this file" working="Checking…" />
         </button>
       </p>
       {result?.headline ? (

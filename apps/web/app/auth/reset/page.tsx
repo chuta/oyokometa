@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BusyLabel } from "@/components/ActionStatus";
 
 function ResetForm() {
   const params = useSearchParams();
@@ -65,7 +66,7 @@ function ResetForm() {
           />
         </label>
         <button className="btn" type="submit" disabled={busy || !token}>
-          Save password
+          <BusyLabel busy={busy} idle="Save password" working="Saving…" />
         </button>
       </form>
       {msg ? (

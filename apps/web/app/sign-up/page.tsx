@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { BusyLabel } from "@/components/ActionStatus";
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,19 +20,24 @@ export default function SignUpPage() {
       return;
     }
     setBusy(true);
-    const res = await fetch("/api/v1/auth/register", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, username, password }),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMsg(json.error?.message ?? "Could not create account");
-      return;
+    try {
+      const res = await fetch("/api/v1/auth/register", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setMsg(json.error?.message ?? "Could not create account");
+        return;
+      }
+      setCreated(true);
+    } catch {
+      setMsg("Could not create account");
+    } finally {
+      setBusy(false);
     }
-    router.replace("/account");
   };
 
   return (
@@ -43,7 +48,17 @@ export default function SignUpPage() {
         Choose a username and password. New accounts start with 10 credits. We will email a confirmation
         link so you can buy more credits and register files.
       </p>
-      <form onSubmit={submit} className="space-y-4">
+      {created ? (
+        <div role="status">
+          <p>Account created. Check {email} for a confirmation link. Your password is already set — you will not need to choose another one.</p>
+          <p className="mt-4">
+            <a className="btn" href="/account">
+              Go to account
+            </a>
+          </p>
+        </div>
+      ) : (
+      <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
         <label className="block">
           Email
           <input
@@ -53,6 +68,7 @@ export default function SignUpPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            disabled={busy}
           />
         </label>
         <label className="block">
@@ -66,6 +82,7 @@ export default function SignUpPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
+            disabled={busy}
           />
         </label>
         <label className="block">
@@ -78,6 +95,7 @@ export default function SignUpPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
+            disabled={busy}
           />
         </label>
         <label className="block">
@@ -90,12 +108,14 @@ export default function SignUpPage() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             autoComplete="new-password"
+            disabled={busy}
           />
         </label>
         <button className="btn" type="submit" disabled={busy}>
-          Create account
+          <BusyLabel busy={busy} idle="Create account" working="Creating account…" />
         </button>
       </form>
+      )}
       <p className="mt-6 text-sm">
         Already registered? <a href="/sign-in">Sign in</a>
       </p>

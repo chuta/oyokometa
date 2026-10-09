@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { BusyLabel } from "@/components/ActionStatus";
 
 type Pay = {
   payment_id: string;
@@ -78,7 +79,7 @@ export default function PayPage() {
         <p className="mt-6">This transfer is already matched. Credits are on your account.</p>
       ) : (
         <button className="btn mt-8" type="button" onClick={confirm} disabled={busy}>
-          I have paid
+          <BusyLabel busy={busy} idle="I have paid" working="Confirming…" />
         </button>
       )}
       {err ? (

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BusyLabel, Spinner } from "@/components/ActionStatus";
 
 type MeUser = {
   email: string;
   username: string | null;
   emailVerified?: boolean;
+  hasPassword?: boolean;
 };
 
 export default function AccountPage() {
@@ -15,6 +17,7 @@ export default function AccountPage() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [pwMsg, setPwMsg] = useState<string | null>(null);
+  const [pwBusy, setPwBusy] = useState(false);
 
   useEffect(() => {
     fetch("/api/v1/me", { credentials: "include" })
@@ -37,7 +40,13 @@ export default function AccountPage() {
       });
   }, []);
 
-  if (!me) return <p>Loading…</p>;
+  if (!me) {
+    return (
+      <p className="page">
+        <Spinner label="Loading account…" />
+      </p>
+    );
+  }
   if (!me.user) {
     return (
       <div className="page">
@@ -62,20 +71,26 @@ export default function AccountPage() {
   const savePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwMsg(null);
-    const res = await fetch("/api/v1/auth/password", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ current, next }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setPwMsg(json.error?.message ?? "Could not update password");
-      return;
+    setPwBusy(true);
+    try {
+      const res = await fetch("/api/v1/auth/password", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current, next }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPwMsg(json.error?.message ?? "Could not update password");
+        return;
+      }
+      setCurrent("");
+      setNext("");
+      setPwMsg("Password saved.");
+      setMe((prev) => (prev?.user ? { ...prev, user: { ...prev.user, hasPassword: true } } : prev));
+    } finally {
+      setPwBusy(false);
     }
-    setCurrent("");
-    setNext("");
-    setPwMsg("Password saved.");
   };
 
   return (
@@ -98,35 +113,65 @@ export default function AccountPage() {
         </ul>
       ) : null}
 
-      <form onSubmit={savePassword} className="mt-10 max-w-md space-y-3">
-        <h2 className="text-xl">Password</h2>
-        <label className="block">
-          Current password
-          <input
-            className="block w-full mt-1"
-            type="password"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            autoComplete="current-password"
-          />
-        </label>
-        <label className="block">
-          New password
-          <input
-            className="block w-full mt-1"
-            type="password"
-            required
-            minLength={10}
-            value={next}
-            onChange={(e) => setNext(e.target.value)}
-            autoComplete="new-password"
-          />
-        </label>
-        <button className="btn" type="submit">
-          Save password
-        </button>
-        {pwMsg ? <p>{pwMsg}</p> : null}
-      </form>
+      {me.user.hasPassword !== false ? (
+        <details className="mt-10 max-w-md">
+          <summary className="cursor-pointer">Change password</summary>
+          <form onSubmit={savePassword} className="mt-4 space-y-3">
+            <label className="block">
+              Current password
+              <input
+                className="block w-full mt-1"
+                type="password"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                autoComplete="current-password"
+                disabled={pwBusy}
+              />
+            </label>
+            <label className="block">
+              New password
+              <input
+                className="block w-full mt-1"
+                type="password"
+                required
+                minLength={10}
+                value={next}
+                onChange={(e) => setNext(e.target.value)}
+                autoComplete="new-password"
+                disabled={pwBusy}
+              />
+            </label>
+            <button className="btn" type="submit" disabled={pwBusy}>
+              <BusyLabel busy={pwBusy} idle="Save password" working="Saving…" />
+            </button>
+            {pwMsg ? <p>{pwMsg}</p> : null}
+          </form>
+        </details>
+      ) : (
+        <form onSubmit={savePassword} className="mt-10 max-w-md space-y-3">
+          <h2 className="text-xl">Set a password</h2>
+          <p className="text-sm text-muted">
+            You signed in with a link. Add a password if you want to use username or email next time.
+          </p>
+          <label className="block">
+            Password
+            <input
+              className="block w-full mt-1"
+              type="password"
+              required
+              minLength={10}
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              autoComplete="new-password"
+              disabled={pwBusy}
+            />
+          </label>
+          <button className="btn" type="submit" disabled={pwBusy}>
+            <BusyLabel busy={pwBusy} idle="Save password" working="Saving…" />
+          </button>
+          {pwMsg ? <p>{pwMsg}</p> : null}
+        </form>
+      )}
 
       <p className="mt-6 flex gap-3 flex-wrap">
         <a className="btn" href="/create">

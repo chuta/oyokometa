@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { REGISTRATION_ATTESTATION, RECORD_STATES } from "@oyokometa/config";
 import { TierTag } from "@oyokometa/findings-ui";
+import { BusyLabel, ProgressTrack, Spinner } from "./ActionStatus";
+import { putFile } from "@/lib/put-file";
 
 type Findings = {
   executive?: { summary?: string; classification?: string };
@@ -16,6 +18,8 @@ export function CreateForm() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [stage, setStage] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [assetId, setAssetId] = useState<string | null>(null);
@@ -54,6 +58,9 @@ export function CreateForm() {
     setFile(f);
     setFindings(null);
     setJobId(null);
+    setAssetId(null);
+    setUploadPct(null);
+    setUploading(false);
   }, []);
 
   const analyze = async () => {
@@ -61,6 +68,8 @@ export function CreateForm() {
     setBusy(true);
     setError(null);
     try {
+      setUploading(true);
+      setUploadPct(0);
       const up = await fetch("/api/v1/uploads", {
         method: "POST",
         credentials: "include",
@@ -74,13 +83,15 @@ export function CreateForm() {
       const upJson = await up.json();
       if (!up.ok) throw new Error(upJson.error?.message ?? "Upload failed");
       setAssetId(upJson.asset_id);
-      const put = await fetch(upJson.upload_url, {
-        method: "PUT",
-        credentials: "include",
-        headers: upJson.headers ?? { "Content-Type": file.type },
-        body: file,
-      });
+      const put = await putFile(
+        upJson.upload_url,
+        file,
+        upJson.headers ?? { "Content-Type": file.type },
+        setUploadPct,
+      );
       if (!put.ok) throw new Error("Could not store the file");
+      setUploading(false);
+      setUploadPct(100);
       const started = await fetch("/api/v1/analyses", {
         method: "POST",
         credentials: "include",
@@ -106,6 +117,7 @@ export function CreateForm() {
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
+      setUploading(false);
     }
   };
 
@@ -182,9 +194,15 @@ export function CreateForm() {
             </button>
             {file ? <p className="mt-3">{file.name}</p> : <p className="mt-3 text-muted">or drop it here</p>}
           </div>
+          {uploading ? <ProgressTrack value={uploadPct} label="Uploading" /> : null}
+          {busy && !uploading ? (
+            <p className="mt-4">
+              <Spinner label={stage ? `Analyzing — ${stage.replaceAll("_", " ")}` : "Starting analysis"} />
+            </p>
+          ) : null}
           <p className="mt-4">
             <button className="btn" type="button" disabled={!file || busy} onClick={analyze}>
-              {busy ? `Analyzing… ${stage ?? ""}` : "Run baseline analysis"}
+              <BusyLabel busy={busy} idle="Run baseline analysis" working={uploading ? "Uploading…" : "Analyzing…"} />
             </button>
           </p>
         </>
@@ -285,7 +303,7 @@ export function CreateForm() {
           </label>
           <p className="mt-4">
             <button className="btn" type="button" disabled={!attested || busy} onClick={register}>
-              {busy ? "Signing…" : "Register this file"}
+              <BusyLabel busy={busy} idle="Register this file" working="Signing…" />
             </button>
           </p>
           {jobId ? (

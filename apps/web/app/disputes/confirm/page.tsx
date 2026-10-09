@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { Spinner } from "@/components/ActionStatus";
 
 function ConfirmInner() {
   const params = useSearchParams();
@@ -28,7 +29,7 @@ function ConfirmInner() {
   return (
     <div className="page page-narrow">
       <h1 className="text-3xl mb-4">Dispute confirmation</h1>
-      <p>{msg}</p>
+      <p>{msg === "Confirming…" ? <Spinner label={msg} /> : msg}</p>
     </div>
   );
 }

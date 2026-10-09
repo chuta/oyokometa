@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BusyLabel } from "@/components/ActionStatus";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -44,7 +45,7 @@ export default function ForgotPasswordPage() {
           />
         </label>
         <button className="btn" type="submit" disabled={busy}>
-          Email a reset link
+          <BusyLabel busy={busy} idle="Email a reset link" working="Sending link…" />
         </button>
       </form>
       <p className="mt-6 text-sm">

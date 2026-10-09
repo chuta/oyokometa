@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FindingsDashboard } from "@oyokometa/findings-ui";
+import { Spinner } from "./ActionStatus";
 import type { FindingsObject } from "@oyokometa/evidence";
 
 export function ResultView({ id }: { id: string }) {
@@ -14,6 +15,9 @@ export function ResultView({ id }: { id: string }) {
     error_message: string | null;
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [wrong, setWrong] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [emailReport, setEmailReport] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -41,7 +45,7 @@ export function ResultView({ id }: { id: string }) {
   if (!data || (data.status !== "completed" && data.status !== "failed")) {
     return (
       <p className="page" aria-live="polite">
-        {data ? `Working… ${data.stage.replaceAll("_", " ")}` : "Loading analysis"}
+        <Spinner label={data ? `Working… ${data.stage.replaceAll("_", " ")}` : "Loading analysis"} />
       </p>
     );
   }
@@ -75,10 +79,6 @@ export function ResultView({ id }: { id: string }) {
         : json.warning ?? "No coordinates",
     );
   };
-
-  const [wrong, setWrong] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [emailReport, setEmailReport] = useState(true);
 
   const share = async () => {
     const res = await fetch(`/api/v1/analyses/${id}/share-links`, {

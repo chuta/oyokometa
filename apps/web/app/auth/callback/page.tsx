@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { Spinner } from "@/components/ActionStatus";
 
 function Consume() {
   const params = useSearchParams();
@@ -29,13 +30,23 @@ function Consume() {
       .catch((e) => setErr(e.message));
   }, [params, router]);
 
-  if (err) return <p role="alert">{err}</p>;
-  return <p>Signing you in…</p>;
+  if (err) return <p className="page" role="alert">{err}</p>;
+  return (
+    <p className="page">
+      <Spinner label="Confirming your email and signing you in…" />
+    </p>
+  );
 }
 
 export default function CallbackPage() {
   return (
-    <Suspense fallback={<p>Signing you in…</p>}>
+    <Suspense
+      fallback={
+        <p>
+          <Spinner label="Signing you in…" />
+        </p>
+      }
+    >
       <Consume />
     </Suspense>
   );

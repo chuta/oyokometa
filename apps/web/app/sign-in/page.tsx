@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { BusyLabel } from "@/components/ActionStatus";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -17,39 +18,49 @@ export default function SignInPage() {
     e.preventDefault();
     setMsg(null);
     setBusy(true);
-    const res = await fetch("/api/v1/auth/login", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMsg(json.error?.message ?? "Could not sign in");
-      return;
+    try {
+      const res = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setMsg(json.error?.message ?? "Could not sign in");
+        return;
+      }
+      router.replace("/account");
+    } catch {
+      setMsg("Could not sign in");
+    } finally {
+      setBusy(false);
     }
-    router.replace("/account");
   };
 
   const sendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
     setBusy(true);
-    const res = await fetch("/api/v1/auth/magic-link", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMsg(json.error?.message ?? "Could not send link");
-      return;
+    try {
+      const res = await fetch("/api/v1/auth/magic-link", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setMsg(json.error?.message ?? "Could not send link");
+        return;
+      }
+      setMsg("Check your email for a sign-in link.");
+      if (json.dev_link) setLink(json.dev_link);
+    } catch {
+      setMsg("Could not send link");
+    } finally {
+      setBusy(false);
     }
-    setMsg("Check your email for a sign-in link.");
-    if (json.dev_link) setLink(json.dev_link);
   };
 
   return (
@@ -69,6 +80,7 @@ export default function SignInPage() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
+              disabled={busy}
             />
           </label>
           <label className="block">
@@ -80,10 +92,11 @@ export default function SignInPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              disabled={busy}
             />
           </label>
           <button className="btn" type="submit" disabled={busy}>
-            Sign in
+            <BusyLabel busy={busy} idle="Sign in" working="Signing in…" />
           </button>
         </form>
       ) : (
@@ -97,10 +110,11 @@ export default function SignInPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              disabled={busy}
             />
           </label>
           <button className="btn" type="submit" disabled={busy}>
-            Email me a link
+            <BusyLabel busy={busy} idle="Email me a link" working="Sending link…" />
           </button>
         </form>
       )}
