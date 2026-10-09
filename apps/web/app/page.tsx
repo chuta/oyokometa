@@ -26,7 +26,9 @@ export default function HomePage() {
               <span>Check whether a file matches a registered record.</span>
             </a>
           </div>
-          <p className="meta-line">Still images only · JPEG, PNG, WebP, HEIC/HEIF, TIFF · 25 MB limit</p>
+          <p className="meta-line">
+            This works with still images only — JPEG, PNG, WebP, HEIC/HEIF or TIFF, up to 25 MB.
+          </p>
         </div>
       </section>
       <section className="pillars" aria-label="How statements are tagged">
