@@ -199,13 +199,23 @@ export function buildFindingsObject(input: {
     category: "provenance",
     classification: input.c2pa.state.replaceAll("_", " "),
     confidence:
-      input.c2pa.state === "verified_and_trusted" ? "Verified" : "Insufficient evidence",
+      input.c2pa.state === "verified_and_trusted"
+        ? "Verified"
+        : input.c2pa.state === "valid_signer_not_recognised" || input.c2pa.state === "invalid"
+          ? "Low"
+          : "Insufficient evidence",
     rule_id: "C2PA",
     evidence_ids: input.items.filter((i) => i.category === "provenance").map((i) => i.id),
     summary:
       input.c2pa.state === "not_detected"
         ? "Most images have no Content Credentials. This says nothing about whether the image is genuine."
-        : `Content Credentials state: ${input.c2pa.state}`,
+        : input.c2pa.state === "valid_signer_not_recognised"
+          ? "Signature and content binding validated. The signer is not on the C2PA Trust List used for this check."
+          : input.c2pa.state === "invalid"
+            ? "A Content Credentials manifest is present but did not validate (signature, credential, or content binding)."
+            : input.c2pa.state === "unable_to_verify"
+              ? "A Content Credentials check could not be completed."
+              : `Content Credentials state: ${input.c2pa.state}`,
   };
 
   const timestamps: Finding = {

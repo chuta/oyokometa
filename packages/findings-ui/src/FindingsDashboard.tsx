@@ -95,6 +95,35 @@ export function FindingsDashboard({
         <p>Content Credentials state: {findings.c2pa.state.replaceAll("_", " ")}</p>
         {findings.c2pa.state === "not_detected" ? <p>{C2PA_NOT_DETECTED_LINE}</p> : null}
         {findings.c2pa.signer ? <p>Signer: {findings.c2pa.signer}</p> : null}
+        {findings.c2pa.claim_generator ? <p>Claim generator: {findings.c2pa.claim_generator}</p> : null}
+        {findings.c2pa.signed_at ? <p>Signed at: {findings.c2pa.signed_at}</p> : null}
+        {findings.c2pa.ai_assertion ? (
+          <p>Digital source type: {findings.c2pa.ai_assertion}</p>
+        ) : null}
+        {findings.c2pa.failure_reason ? <p>Validation: {findings.c2pa.failure_reason}</p> : null}
+        {findings.c2pa.trust_list_version ? (
+          <p>Trust list: {findings.c2pa.trust_list_version}</p>
+        ) : null}
+        {Array.isArray(findings.c2pa.actions) && findings.c2pa.actions.length > 0 ? (
+          <div>
+            <p>Actions</p>
+            <ul>
+              {findings.c2pa.actions.map((action, i) => (
+                <li key={i}>{formatC2paAction(action)}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {Array.isArray(findings.c2pa.ingredients) && findings.c2pa.ingredients.length > 0 ? (
+          <div>
+            <p>Ingredients</p>
+            <ul>
+              {findings.c2pa.ingredients.map((ing, i) => (
+                <li key={i}>{formatC2paIngredient(ing)}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       <section>
@@ -214,4 +243,16 @@ function FindingDrawer({
       <p className="sr-only">{evidence.length} evidence items in this analysis.</p>
     </div>
   );
+}
+
+function formatC2paAction(action: unknown): string {
+  if (!action || typeof action !== "object") return String(action);
+  const rec = action as { action?: string; softwareAgent?: string; digitalSourceType?: string };
+  return [rec.action, rec.softwareAgent, rec.digitalSourceType].filter(Boolean).join(" · ") || JSON.stringify(action);
+}
+
+function formatC2paIngredient(ing: unknown): string {
+  if (!ing || typeof ing !== "object") return String(ing);
+  const rec = ing as { title?: string; format?: string; relationship?: string };
+  return [rec.title, rec.format, rec.relationship].filter(Boolean).join(" · ") || JSON.stringify(ing);
 }

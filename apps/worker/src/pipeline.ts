@@ -300,17 +300,26 @@ export async function runPipeline(jobId: string): Promise<void> {
     }
 
     await setStage(jobId, "credentials");
-    const c2pa = await analyzeC2pa(buf);
+    const c2pa = await analyzeC2pa(buf, magic.mime);
     await db.insert(c2paResults).values({
       jobId,
       state: c2pa.state,
       signer: c2pa.signer,
       claimGenerator: c2pa.claim_generator,
+      signedAt:
+        c2pa.signed_at && !Number.isNaN(Date.parse(c2pa.signed_at))
+          ? new Date(c2pa.signed_at)
+          : null,
       actions: c2pa.actions as object,
       ingredients: c2pa.ingredients as object,
       aiAssertion: c2pa.ai_assertion,
       failureReason: c2pa.failure_reason,
       trustListVersion: c2pa.trust_list_version,
+    });
+    await db.insert(rawOutputs).values({
+      jobId,
+      producer: C2PA_PRODUCER,
+      payload: c2pa as unknown as Record<string, unknown>,
     });
     if (c2pa.state === "not_detected") {
       items.push(
