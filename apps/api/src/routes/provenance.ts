@@ -32,6 +32,7 @@ import { declarationContradictions } from "../signing/contradictions.js";
 import { qrSvg } from "../signing/qr.js";
 import { randomToken } from "../crypto.js";
 import { readBlob } from "../blob.js";
+import { publicAppOrigin } from "../origin.js";
 import { sha256, perceptualHash } from "@oyokometa/worker/hash";
 
 export const provenanceRoutes = new Hono();
@@ -250,7 +251,7 @@ provenanceRoutes.post("/provenance", async (c) => {
     });
     if (cost > 0) await captureHold(recordId, auth.user.id);
     await audit(auth.user.id, "provenance.register", recordId);
-    const origin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
+    const origin = publicAppOrigin();
     return c.json(
       {
         id: recordId,
@@ -657,7 +658,7 @@ async function publicRecordView(publicId: string, userId: string | null) {
     .where(and(eq(provenanceRecords.assetSha256, row.assetSha256), eq(provenanceRecords.visibility, "public")));
   const n = publicPeers.length;
   const earliest = publicPeers.map((p) => p.createdAt).sort((a, b) => a.getTime() - b.getTime())[0];
-  const origin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
+  const origin = publicAppOrigin();
   const verifyUrl = `${origin}/verify/${row.publicId}`;
   const canonical = JSON.parse(row.canonicalJson) as { contradictions?: string[] };
   return {

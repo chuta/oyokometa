@@ -56,7 +56,7 @@ export default function CreditsPage() {
       <h1 className="text-4xl mb-4">Credits</h1>
       {!signedIn ? (
         <p>
-          <a href="/sign-in">Sign in</a> to buy credits.
+          <a href="/sign-in">Sign in</a> or <a href="/sign-up">create an account</a> to buy credits.
         </p>
       ) : (
         <p className="mb-6">Balance: {balance ?? "…"} credits</p>

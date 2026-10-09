@@ -2,10 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+type MeUser = {
+  email: string;
+  username: string | null;
+  emailVerified?: boolean;
+};
+
 export default function AccountPage() {
-  const [me, setMe] = useState<{ user: { email: string } | null } | null>(null);
+  const [me, setMe] = useState<{ user: MeUser | null } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [records, setRecords] = useState<Array<{ public_id: string; status: string; created_at: string }>>([]);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [pwMsg, setPwMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/me", { credentials: "include" })
@@ -34,7 +43,8 @@ export default function AccountPage() {
       <div className="page">
         <h1 className="text-3xl mb-4">Account</h1>
         <p>
-          <a href="/sign-in">Sign in</a> to keep analyses, buy credits, and generate reports.
+          <a href="/sign-in">Sign in</a> or <a href="/sign-up">create an account</a> to keep analyses, buy credits, and
+          generate reports.
         </p>
       </div>
     );
@@ -49,10 +59,33 @@ export default function AccountPage() {
     window.location.href = "/";
   };
 
+  const savePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwMsg(null);
+    const res = await fetch("/api/v1/auth/password", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current, next }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setPwMsg(json.error?.message ?? "Could not update password");
+      return;
+    }
+    setCurrent("");
+    setNext("");
+    setPwMsg("Password saved.");
+  };
+
   return (
     <div className="page">
       <h1 className="text-3xl mb-4">Account</h1>
+      <p>{me.user.username ? `@${me.user.username}` : null}</p>
       <p>{me.user.email}</p>
+      {me.user.emailVerified === false ? (
+        <p className="mt-2 text-muted">Confirm your email before buying credits or registering a file.</p>
+      ) : null}
       <p className="mt-2">Credit balance: {balance ?? "…"}</p>
       {records.length ? (
         <ul className="mt-6 text-sm">
@@ -64,9 +97,43 @@ export default function AccountPage() {
           ))}
         </ul>
       ) : null}
-      <p className="mt-6 flex gap-3">
+
+      <form onSubmit={savePassword} className="mt-10 max-w-md space-y-3">
+        <h2 className="text-xl">Password</h2>
+        <label className="block">
+          Current password
+          <input
+            className="block w-full mt-1"
+            type="password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            autoComplete="current-password"
+          />
+        </label>
+        <label className="block">
+          New password
+          <input
+            className="block w-full mt-1"
+            type="password"
+            required
+            minLength={10}
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+            autoComplete="new-password"
+          />
+        </label>
+        <button className="btn" type="submit">
+          Save password
+        </button>
+        {pwMsg ? <p>{pwMsg}</p> : null}
+      </form>
+
+      <p className="mt-6 flex gap-3 flex-wrap">
         <a className="btn" href="/create">
           Create a record
+        </a>
+        <a className="btn-secondary btn" href="/account/reports">
+          Reports
         </a>
         <a className="btn-secondary btn" href="/credits">
           Buy credits

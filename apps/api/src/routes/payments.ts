@@ -14,6 +14,8 @@ import {
 } from "@oyokometa/db";
 import { bankDetails, formatAmount, generateTransferReference } from "../bank.js";
 import { audit } from "../audit.js";
+import { sendAdminNotice, sendCreditsReceipt, sendTransferInstructions } from "../email.js";
+import { publicAppOrigin } from "../origin.js";
 
 export const creditRoutes = new Hono();
 
@@ -118,6 +120,23 @@ creditRoutes.post("/payments/intents", async (c) => {
   }
   const bank = await bankDetails();
   await audit(auth.user.id, "payment.intent", payment.id, undefined, { reference, product: product.name });
+  const payUrl = `${publicAppOrigin()}/credits/pay/${payment.id}`;
+  try {
+    await sendTransferInstructions({
+      email: auth.user.email,
+      amountLabel: formatAmount(product.priceMinor, product.currency),
+      credits: product.credits,
+      reference,
+      bank,
+      payUrl,
+    });
+    await sendAdminNotice(`Transfer started ${reference}`, [
+      `${auth.user.email} started a bank transfer for ${product.credits} credits.`,
+      `Reference ${reference}. Amount ${formatAmount(product.priceMinor, product.currency)}.`,
+    ]);
+  } catch (err) {
+    console.error(JSON.stringify({ msg: "payment_email_failed", message: (err as Error).message }));
+  }
   return c.json({
     payment_id: payment.id,
     reference,
@@ -193,5 +212,19 @@ creditRoutes.post("/payments/:id/confirm", async (c) => {
     reference: payment.referenceCode,
     credits: product.credits,
   });
+  try {
+    await sendCreditsReceipt({
+      email: auth.user.email,
+      credits: product.credits,
+      reference: payment.referenceCode ?? payment.id,
+      balance: wallet.cachedBalance,
+    });
+    await sendAdminNotice(`Credits claimed ${payment.referenceCode}`, [
+      `${auth.user.email} marked ${payment.referenceCode} as paid.`,
+      `${product.credits} credits granted.`,
+    ]);
+  } catch (err) {
+    console.error(JSON.stringify({ msg: "receipt_email_failed", message: (err as Error).message }));
+  }
   return c.json({ ok: true, status: "paid", credits_granted: product.credits, balance: wallet.cachedBalance });
 });

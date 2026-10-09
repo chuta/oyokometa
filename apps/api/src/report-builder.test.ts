@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PDFDocument } from "pdf-lib";
 import { buildFindingsObject } from "@oyokometa/evidence";
 import type { EvidenceItem } from "@oyokometa/evidence";
 import { hashBuffer, jsonReportBytes, pdfReportBytes, reportPayload } from "./report-builder.js";
@@ -18,7 +19,7 @@ const items: EvidenceItem[] = [
 ];
 
 describe("report parity", () => {
-  it("JSON and PDF are built from the same findings object", () => {
+  it("JSON and PDF are built from the same findings object", async () => {
     const findings = buildFindingsObject({
       evidence_id: "ab".repeat(32),
       items,
@@ -58,9 +59,14 @@ describe("report parity", () => {
     });
     const payload = reportPayload(findings, "rep1", false);
     const json = jsonReportBytes(payload);
-    const pdf = pdfReportBytes(payload);
+    const pdf = await pdfReportBytes(payload);
     expect(json.toString()).toContain(payload.executive.classification);
+    expect(json.toString()).toContain(payload.evidence_id);
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.byteLength).toBeGreaterThan(8_000);
+    const loaded = await PDFDocument.load(pdf);
+    expect(loaded.getPageCount()).toBeGreaterThan(1);
+    expect(loaded.getTitle()).toContain("Oyokometa");
     expect(hashBuffer(json)).toHaveLength(64);
     expect(payload.identity.file_name).toBeNull();
   });

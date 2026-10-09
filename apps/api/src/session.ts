@@ -10,7 +10,7 @@ export type AuthCtx = {
   ip: string;
   ipHash: string;
   anon: { id: string } | null;
-  user: { id: string; email: string; emailVerified: boolean; role: string } | null;
+  user: { id: string; email: string; username: string | null; emailVerified: boolean; role: string } | null;
 };
 
 declare module "hono" {
@@ -41,6 +41,7 @@ export async function sessionMiddleware(c: Context, next: Next) {
           user = {
             id: u.id,
             email: u.email,
+            username: u.username ?? null,
             emailVerified: Boolean(u.emailVerifiedAt),
             role: u.role,
           };

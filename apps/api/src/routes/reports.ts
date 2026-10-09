@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { ERROR_CODES } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import type { FindingsObject } from "@oyokometa/evidence";
@@ -15,7 +15,8 @@ import {
 import { notFound } from "../session.js";
 import { writeBlob, readBlob } from "../blob.js";
 import { hashBuffer, jsonReportBytes, pdfReportBytes, reportPayload } from "../report-builder.js";
-import { sendReportLink } from "../email.js";
+import { EmailDeliveryError, sendReportLink } from "../email.js";
+import { publicAppOrigin } from "../origin.js";
 import { audit } from "../audit.js";
 
 export const reportRoutes = new Hono();
@@ -66,7 +67,7 @@ reportRoutes.post("/analyses/:id/reports", async (c) => {
     for (const format of ["json", "pdf"] as const) {
       const id = crypto.randomUUID();
       const payload = reportPayload(findings, id, includeGps);
-      const bytes = format === "json" ? jsonReportBytes(payload) : pdfReportBytes(payload);
+      const bytes = format === "json" ? jsonReportBytes(payload) : await pdfReportBytes(payload);
       const hash = hashBuffer(bytes);
       const key = `reports/${id}.${format}`;
       await writeBlob(key, bytes, format === "json" ? "application/json" : "application/pdf");
@@ -85,12 +86,39 @@ reportRoutes.post("/analyses/:id/reports", async (c) => {
     await releaseHold(`report:${holdId}`, "system");
     throw err;
   }
+  let email_sent = false;
   if (body.email) {
-    const origin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
-    await sendReportLink(auth.user.email, `${origin}/account/reports`);
+    try {
+      await sendReportLink(auth.user.email, `${publicAppOrigin()}/account/reports`);
+      email_sent = true;
+    } catch (err) {
+      if (!(err instanceof EmailDeliveryError)) throw err;
+    }
   }
   await audit(auth.user.id, "report.create", job.id);
-  return c.json({ reports: created }, 201);
+  return c.json({ reports: created, email_sent }, 201);
+});
+
+reportRoutes.get("/reports", async (c) => {
+  const auth = c.get("auth");
+  if (!auth.user) {
+    return c.json(apiError(ERROR_CODES.unauthorized, "Sign in required", auth.requestId), 401);
+  }
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: reports.id,
+      job_id: reports.jobId,
+      format: reports.format,
+      report_hash: reports.reportHash,
+      created_at: reports.createdAt,
+    })
+    .from(reports)
+    .innerJoin(analysisJobs, eq(reports.jobId, analysisJobs.id))
+    .where(and(eq(analysisJobs.ownerUserId, auth.user.id), isNull(analysisJobs.deletedAt)))
+    .orderBy(desc(reports.createdAt))
+    .limit(80);
+  return c.json({ reports: rows });
 });
 
 reportRoutes.get("/reports/:id", async (c) => {

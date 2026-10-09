@@ -6,6 +6,8 @@ R1 ships Analyze without a paywall. R2 adds accounts, credits, bank-transfer top
 
 Bank details for credit packs: `BANK_NAME`, `BANK_ACCOUNT_NAME`, `BANK_ACCOUNT_NUMBER` in `.env`. The first magic-link address in `ADMIN_EMAIL` becomes an admin.
 
+Transactional email is **Resend**. Set `RESEND_API_KEY` and a verified `EMAIL_FROM` (SPF/DKIM on that domain). Magic links, dispute confirmations, report links (RP-6: link only, no PDF attachment) and bank-transfer instructions are sent from the API. Without a key, local development logs the link instead of sending.
+
 ## Supabase
 
 Project: [vpvhshoxwaorrwtaxvdb](https://vpvhshoxwaorrwtaxvdb.supabase.co).
@@ -24,7 +26,7 @@ API Machines in London (`lhr`): [https://oyokometa-api.fly.dev](https://oyokomet
 fly deploy --ha=false
 ```
 
-Secrets (database URI, session keys, signing PEM) live in `fly secrets`, not `fly.toml`. After the Netlify site is live, set `WEB_ORIGIN` to that origin (comma-separated with the API URL if needed) and `NEXT_PUBLIC_API_URL=https://oyokometa-api.fly.dev` on the web app.
+Secrets (database URI, session keys, signing PEM, `RESEND_API_KEY`, `EMAIL_FROM`) live in `fly secrets`, not `fly.toml`. After the Netlify site is live, set `WEB_ORIGIN` to that origin (comma-separated with the API URL if needed) and `NEXT_PUBLIC_API_URL=https://oyokometa-api.fly.dev` on the web app. Email links use `AUTH_URL` (the public site), not the CORS list.
 
 `oyokometa-worker` exists for a later Redis-backed split; the API currently runs the pipeline inline (`INLINE_WORKER=true`). Uploads persist on the `okm_data` volume.
 

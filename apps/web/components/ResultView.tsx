@@ -78,6 +78,7 @@ export function ResultView({ id }: { id: string }) {
 
   const [wrong, setWrong] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [emailReport, setEmailReport] = useState(true);
 
   const share = async () => {
     const res = await fetch(`/api/v1/analyses/${id}/share-links`, {
@@ -99,7 +100,7 @@ export function ResultView({ id }: { id: string }) {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ include_gps: false }),
+      body: JSON.stringify({ include_gps: false, email: emailReport }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -107,6 +108,14 @@ export function ResultView({ id }: { id: string }) {
       return;
     }
     const jsonRep = json.reports?.find((r: { format: string }) => r.format === "json");
+    if (emailReport) {
+      setNotice(
+        json.email_sent
+          ? "Report ready. A signed-in link was emailed; the PDF is not attached. Open Account → Reports."
+          : "Report ready. The email could not be sent — open it from Account → Reports.",
+      );
+      return;
+    }
     if (jsonRep) window.location.href = `/api/v1/reports/${jsonRep.id}`;
   };
 
@@ -134,6 +143,15 @@ export function ResultView({ id }: { id: string }) {
         onRevealGps={data.findings.gps_present ? gps : undefined}
       />
       <p className="mt-4">
+        <label className="mr-4">
+          <input
+            type="checkbox"
+            className="mr-2"
+            checked={emailReport}
+            onChange={(e) => setEmailReport(e.target.checked)}
+          />
+          Email a signed-in link when a report is generated
+        </label>
         <button className="btn-secondary btn" type="button" onClick={upgrade}>
           Upgrade to Deep Analysis
         </button>

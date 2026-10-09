@@ -9,7 +9,8 @@ import { notFound } from "../session.js";
 import { randomToken, sha256Hex } from "../crypto.js";
 import { getSigner } from "../signing/kms.js";
 import { signEvent, sha256Utf8 } from "../signing/events.js";
-import { sendDisputeLink } from "../email.js";
+import { EmailDeliveryError, sendDisputeLink } from "../email.js";
+import { publicAppOrigin } from "../origin.js";
 
 export const disputeRoutes = new Hono();
 
@@ -48,14 +49,20 @@ disputeRoutes.post("/disputes", async (c) => {
       tokenHash: sha256Hex(raw),
     })
     .returning();
-  const origin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
-  const url = `${origin}/disputes/confirm?token=${raw}`;
-  const sent = await sendDisputeLink(email, url);
-  await audit("public", "dispute.filed", created?.id, undefined, { public_id: row.publicId });
-  return c.json({
-    ok: true,
-    dev_link: process.env.NODE_ENV === "production" ? undefined : sent.url,
-  });
+  const url = `${publicAppOrigin()}/disputes/confirm?token=${raw}`;
+  try {
+    const sent = await sendDisputeLink(email, url);
+    await audit("public", "dispute.filed", created?.id, undefined, { public_id: row.publicId });
+    return c.json({
+      ok: true,
+      dev_link: sent.sent || process.env.NODE_ENV === "production" ? undefined : sent.url,
+    });
+  } catch (err) {
+    if (err instanceof EmailDeliveryError) {
+      return c.json(apiError(ERROR_CODES.service_unavailable, "Could not send the confirmation email", auth.requestId), 503);
+    }
+    throw err;
+  }
 });
 
 disputeRoutes.post("/disputes/confirm", async (c) => {
