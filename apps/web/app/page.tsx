@@ -1,35 +1,54 @@
-import { TRUST_LINE } from "@oyokometa/config";
-
 export default function HomePage() {
   return (
     <>
       <section className="hero">
-        <div className="hero-inner">
-          <p className="kicker">Image provenance</p>
+        <div className="hero-card">
+          <p className="kicker kicker-dot">Image provenance</p>
           <h1>What can this image tell you?</h1>
-          <p className="lede">{TRUST_LINE}</p>
-          <p className="lede" style={{ marginTop: "1rem", fontSize: "1.02rem" }}>
-            Upload a file. See what is verified, what is detected and what is inferred, and why.
-            This product analyzes files. It does not judge whether a depicted event happened.
+          <p className="lede">
+            Investigate an image&apos;s origin, metadata and editing history. Create a record of the
+            file you control. Let another person independently check whether a file matches that
+            record.
           </p>
-          <div className="hero-actions">
-            <a className="action-card primary" href="/analyze">
-              <strong>Analyze an image</strong>
-              <span>Free Quick Scan. Separate facts from inference.</span>
+          <p className="lede lede-follow">
+            See what is verified, what is detected, and what is inferred — with the evidence and
+            limitations made clear.
+          </p>
+          <div className="hero-ctas">
+            <a className="cta-primary" href="/analyze">
+              Analyze an image — Free Quick Scan
             </a>
-            <a className="action-card" href="/create">
-              <strong>Create a record</strong>
-              <span>Register these exact bytes, signed by the platform.</span>
-            </a>
-            <a className="action-card" href="/verify">
-              <strong>Verify a file</strong>
-              <span>Check whether a file matches a registered record.</span>
-            </a>
+            <div className="cta-pair">
+              <a className="cta-secondary" href="/create">
+                Create a record
+              </a>
+              <a className="cta-secondary" href="/verify">
+                Verify a file
+              </a>
+            </div>
           </div>
-          <p className="meta-line">
-            This works with still images only — JPEG, PNG, WebP, HEIC/HEIF or TIFF, up to 25 MB.
+          <p className="hero-disclaimer">
+            Forensic signals can be uncertain. A file&apos;s provenance does not establish whether
+            the event depicted actually happened.
           </p>
         </div>
+      </section>
+      <section className="loop" aria-label="How Oyokometa is used">
+        <article>
+          <p className="kicker">1</p>
+          <h2>Investigate</h2>
+          <p>Run a Quick Scan on the file. Facts, technical signals and inference stay in separate tiers.</p>
+        </article>
+        <article>
+          <p className="kicker">2</p>
+          <h2>Record what you control</h2>
+          <p>Register these exact bytes. The record is what this account submitted, not a claim of authorship.</p>
+        </article>
+        <article>
+          <p className="kicker">3</p>
+          <h2>Verify independently</h2>
+          <p>Anyone with the file can check whether it still matches the registered record.</p>
+        </article>
       </section>
       <section className="pillars" aria-label="How statements are tagged">
         <article className="pillar">
