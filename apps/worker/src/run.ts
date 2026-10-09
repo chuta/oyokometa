@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 import { runPipeline } from "./pipeline.js";
 
 const url = process.env.REDIS_URL;
@@ -8,7 +8,7 @@ if (!url) {
   console.log("REDIS_URL unset; worker idle (API may run INLINE_WORKER)");
   setInterval(() => undefined, 60_000);
 } else {
-  const connection = new IORedis(url, { maxRetriesPerRequest: null });
+  const connection = new Redis(url, { maxRetriesPerRequest: null });
   const worker = new Worker(
     "analysis",
     async (job) => {

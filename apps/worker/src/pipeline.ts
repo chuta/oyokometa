@@ -30,8 +30,10 @@ const HASH_PRODUCER = "hash-worker@1.0.0";
 
 function failCode(err: unknown): { code: string; message: string } {
   if (err && typeof err === "object" && "code" in err) {
-    const code = String((err as { code: string }).code);
-    return { code, message: (err as Error).message };
+    const rec = err as { code: unknown; message?: unknown };
+    const code = String(rec.code);
+    const message = typeof rec.message === "string" ? rec.message : String(err);
+    return { code, message };
   }
   const msg = err instanceof Error ? err.message : "service unavailable";
   if (/unsupported|heif|input/i.test(msg)) return { code: "corrupt", message: msg };

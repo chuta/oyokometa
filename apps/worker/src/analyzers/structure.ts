@@ -26,6 +26,7 @@ function jpeg(buf: Buffer): StructureResult {
       continue;
     }
     const marker = buf[i + 1];
+    if (marker === undefined) break;
     if (marker === 0xd9) {
       eoi = i;
       break;

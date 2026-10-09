@@ -8,14 +8,14 @@ import { writeBlob, presignPut, useFs } from "../blob.js";
 import { notFound } from "../session.js";
 import { eq } from "drizzle-orm";
 
-const ERROR_MESSAGES: Record<string, string> = {
+const ERROR_MESSAGES = {
   unsupported_type: "This file type is not supported. Use JPEG, PNG, WebP, HEIC/HEIF or TIFF.",
   too_large: "This file exceeds the size or dimension limit.",
   corrupt: "This file could not be decoded.",
   malware_flagged: "This file was flagged by malware scanning and was not analyzed.",
   timeout: "Analysis timed out. You were not charged.",
   service_unavailable: "The service is temporarily unavailable.",
-};
+} as const satisfies Record<string, string>;
 
 export const uploadRoutes = new Hono();
 

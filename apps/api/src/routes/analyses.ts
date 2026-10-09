@@ -19,14 +19,14 @@ import { notFound } from "../session.js";
 import { removeBlob } from "../blob.js";
 import { audit } from "../audit.js";
 
-const ERROR_MESSAGES: Record<string, string> = {
+const ERROR_MESSAGES = {
   unsupported_type: "This file type is not supported. Use JPEG, PNG, WebP, HEIC/HEIF or TIFF.",
   too_large: "This file exceeds the size or dimension limit.",
   corrupt: "This file could not be decoded.",
   malware_flagged: "This file was flagged by malware scanning and was not analyzed.",
   timeout: "Analysis timed out. You were not charged.",
   service_unavailable: "The service is temporarily unavailable.",
-};
+} as const satisfies Record<string, string>;
 
 export const analysisRoutes = new Hono();
 
@@ -156,7 +156,9 @@ analysisRoutes.get("/analyses/:id", async (c) => {
     stage: job.stage,
     tier: job.tier,
     error_code: job.errorCode,
-    error_message: job.errorCode ? ERROR_MESSAGES[job.errorCode] ?? job.errorMessage : null,
+    error_message: job.errorCode
+      ? ERROR_MESSAGES[job.errorCode as keyof typeof ERROR_MESSAGES] ?? job.errorMessage
+      : null,
     findings: job.findings,
     preview_url: asset?.previewKey ? `/api/v1/previews/${asset.id}` : null,
     created_at: job.createdAt,

@@ -37,7 +37,8 @@ export async function analyzeC2pa(buf: Buffer): Promise<C2paAnalysis> {
   const trust_list_version = await refreshTrustList();
   const looksLikeJumbf = buf.includes(Buffer.from("c2pa")) || buf.includes(Buffer.from("jumb"));
   try {
-    const mod = await import("@contentauth/c2pa-node").catch(() => null);
+    const sdkName = "@contentauth/c2pa-node";
+    const mod = await import(sdkName).catch(() => null);
     if (!mod) {
       if (!looksLikeJumbf) {
         return empty("not_detected", trust_list_version);
