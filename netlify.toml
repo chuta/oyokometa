@@ -1,12 +1,57 @@
+# Web app (Next.js) on Netlify. API stays on Fly.
+# Keep base at the repo root so pnpm-workspace.yaml is used.
+# In the Netlify UI, set Package directory to `apps/web` (that field is not valid in this file).
+
 [build]
-  command = "pnpm --filter @oyokometa/web build"
+  command = "pnpm --filter @oyokometa/web... build"
   publish = "apps/web/.next"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- apps/web packages/config packages/evidence packages/findings-ui packages/shared netlify.toml pnpm-lock.yaml package.json pnpm-workspace.yaml .npmrc"
 
 [build.environment]
   NODE_VERSION = "20"
+  PNPM_VERSION = "9.15.4"
+  PNPM_FLAGS = "--frozen-lockfile --shamefully-hoist"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[context.production.environment]
-  NODE_ENV = "production"
+[dev]
+  command = "pnpm --filter @oyokometa/web dev"
+  targetPort = 3000
+  port = 8888
+  framework = "#custom"
+
+# Apex is the canonical host. www is an alias.
+[[redirects]]
+  from = "https://www.oyokometa.xyz/*"
+  to = "https://oyokometa.xyz/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/.well-known/oyokometa-keys.json"
+  to = "https://oyokometa-api.fly.dev/.well-known/oyokometa-keys.json"
+  status = 200
+  force = true
+
+# Same-origin API for the browser. force shadows the Next.js proxy route.
+# Uploads stay on this path so they do not hit the Functions body-size limit.
+[[redirects]]
+  from = "/api/v1/*"
+  to = "https://oyokometa-api.fly.dev/api/v1/:splat"
+  status = 200
+  force = true
+  headers = { X-Forwarded-Host = "oyokometa.xyz" }
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
