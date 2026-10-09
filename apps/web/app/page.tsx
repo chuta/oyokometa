@@ -2,8 +2,8 @@ export default function HomePage() {
   return (
     <>
       <section className="hero">
-        <div className="hero-card">
-          <p className="kicker kicker-dot">Image provenance</p>
+        <div className="hero-inner">
+          <p className="kicker">Image provenance</p>
           <h1>What can this image tell you?</h1>
           <p className="lede">
             Investigate an image&apos;s origin, metadata and editing history. Create a record of the
@@ -14,41 +14,26 @@ export default function HomePage() {
             See what is verified, what is detected, and what is inferred — with the evidence and
             limitations made clear.
           </p>
-          <div className="hero-ctas">
-            <a className="cta-primary" href="/analyze">
-              Analyze an image — Free Quick Scan
+          <div className="hero-actions">
+            <a className="action-card primary" href="/analyze">
+              <strong>Analyze an image</strong>
+              <span>Free Quick Scan. Investigate origin, metadata and editing history.</span>
             </a>
-            <div className="cta-pair">
-              <a className="cta-secondary" href="/create">
-                Create a record
-              </a>
-              <a className="cta-secondary" href="/verify">
-                Verify a file
-              </a>
-            </div>
+            <a className="action-card" href="/create">
+              <strong>Create a record</strong>
+              <span>Register the exact bytes you control. Not a claim of authorship.</span>
+            </a>
+            <a className="action-card" href="/verify">
+              <strong>Verify a file</strong>
+              <span>Independently check whether a file matches a registered record.</span>
+            </a>
           </div>
-          <p className="hero-disclaimer">
+          <p className="meta-line">
             Forensic signals can be uncertain. A file&apos;s provenance does not establish whether
-            the event depicted actually happened.
+            the event depicted actually happened. Still images only — JPEG, PNG, WebP, HEIC/HEIF or
+            TIFF, up to 25 MB.
           </p>
         </div>
-      </section>
-      <section className="loop" aria-label="How Oyokometa is used">
-        <article>
-          <p className="kicker">1</p>
-          <h2>Investigate</h2>
-          <p>Run a Quick Scan on the file. Facts, technical signals and inference stay in separate tiers.</p>
-        </article>
-        <article>
-          <p className="kicker">2</p>
-          <h2>Record what you control</h2>
-          <p>Register these exact bytes. The record is what this account submitted, not a claim of authorship.</p>
-        </article>
-        <article>
-          <p className="kicker">3</p>
-          <h2>Verify independently</h2>
-          <p>Anyone with the file can check whether it still matches the registered record.</p>
-        </article>
       </section>
       <section className="pillars" aria-label="How statements are tagged">
         <article className="pillar">
