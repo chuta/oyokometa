@@ -76,6 +76,11 @@ async function append(
   });
 }
 
+export async function grantSignupCredits(userId: string, credits = 10) {
+  const wallet = await ensureWallet(userId);
+  return append(wallet.id, "SIGNUP", credits, `signup_bonus:${userId}`, "signup", userId, "system");
+}
+
 export async function purchaseCredits(userId: string, credits: number, paymentId: string, actor: string) {
   const wallet = await ensureWallet(userId);
   return append(wallet.id, "PURCHASE", credits, `purchase:${paymentId}`, "payment", paymentId, actor);

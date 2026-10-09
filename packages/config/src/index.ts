@@ -36,6 +36,7 @@ export const CREDIT_DEFAULTS = {
   provenanceRegistration: 25,
   verify: 0,
   locationResolution: 10,
+  signupBonus: 10,
 } as const;
 
 export const PACKS = [

@@ -40,7 +40,8 @@ export default function SignUpPage() {
       <p className="kicker">Account</p>
       <h1 className="text-4xl mb-3">Create an account</h1>
       <p className="text-muted mb-8">
-        Choose a username and password. We will email a confirmation link so you can buy credits and register files.
+        Choose a username and password. New accounts start with 10 credits. We will email a confirmation
+        link so you can buy more credits and register files.
       </p>
       <form onSubmit={submit} className="space-y-4">
         <label className="block">

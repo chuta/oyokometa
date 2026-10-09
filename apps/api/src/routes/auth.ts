@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { and, eq, gte, isNull } from "drizzle-orm";
-import { ERROR_CODES, SESSION } from "@oyokometa/config";
+import { CREDIT_DEFAULTS, ERROR_CODES, SESSION } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
   getDb,
@@ -12,6 +12,7 @@ import {
   assets,
   anonymousSessions,
   ensureWallet,
+  grantSignupCredits,
 } from "@oyokometa/db";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { randomToken, sha256Hex, unsign } from "../crypto.js";
@@ -99,6 +100,7 @@ authRoutes.post("/auth/register", async (c) => {
     return c.json(apiError(ERROR_CODES.service_unavailable, "Could not create account", auth.requestId), 503);
   }
   await finishLogin(c, user);
+  await grantSignupCredits(user.id, CREDIT_DEFAULTS.signupBonus);
   const raw = randomToken(32);
   await db.insert(magicLinks).values({
     email,
@@ -116,6 +118,7 @@ authRoutes.post("/auth/register", async (c) => {
     ok: true,
     user: publicUser(user),
     verification_sent: true,
+    credits_granted: CREDIT_DEFAULTS.signupBonus,
   }, 201);
 });
 
@@ -306,6 +309,7 @@ authRoutes.post("/auth/consume", async (c) => {
 
   let [user] = await db.select().from(users).where(eq(users.email, link.email)).limit(1);
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  let created = false;
   if (!user) {
     const username = await allocateUsername(link.email.split("@")[0] ?? "user");
     const role = adminEmail && link.email === adminEmail ? "admin" : "user";
@@ -319,6 +323,7 @@ authRoutes.post("/auth/consume", async (c) => {
         role,
       })
       .returning();
+    created = true;
   } else if (!user.emailVerifiedAt) {
     await db.update(users).set({ emailVerifiedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, user.id));
     user = { ...user, emailVerifiedAt: new Date() };
@@ -327,6 +332,7 @@ authRoutes.post("/auth/consume", async (c) => {
     return c.json(apiError(ERROR_CODES.service_unavailable, "Could not create account", auth.requestId), 503);
   }
   await finishLogin(c, user);
+  if (created) await grantSignupCredits(user.id, CREDIT_DEFAULTS.signupBonus);
   await audit(user.id, "auth.sign_in", user.email);
   return c.json({ ok: true, user: publicUser(user) });
 });
