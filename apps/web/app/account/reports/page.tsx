@@ -50,7 +50,7 @@ export default function AccountReportsPage() {
             <li key={r.id} className="border border-line p-4">
               <p className="uppercase text-sm text-muted">{r.format}</p>
               <p className="mono text-sm break-all mt-1">{r.report_hash}</p>
-              <p className="mt-3 flex gap-3">
+              <p className="action-row">
                 <a className="btn" href={`/api/v1/reports/${r.id}`}>
                   Download
                 </a>

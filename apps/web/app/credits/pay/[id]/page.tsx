@@ -50,8 +50,14 @@ export default function PayPage() {
     setPay((p) => (p ? { ...p, status: json.status ?? "awaiting_match" } : p));
   };
 
-  if (err && !pay) return <p role="alert">{err}</p>;
-  if (!pay) return <p>Loading payment…</p>;
+  if (err && !pay) {
+    return (
+      <p className="page" role="alert">
+        {err}
+      </p>
+    );
+  }
+  if (!pay) return <p className="page">Loading payment…</p>;
 
   return (
     <div className="page page-narrow">

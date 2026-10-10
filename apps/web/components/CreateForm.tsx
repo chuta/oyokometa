@@ -316,7 +316,7 @@ export function CreateForm() {
           )}
           {jobId ? (
             <p className="text-sm mt-2">
-              Baseline analysis: <a href={`/a/${jobId}`}>{jobId}</a>
+              Baseline analysis: <a className="mono" href={`/a/${jobId}`}>{jobId}</a>
             </p>
           ) : null}
         </>

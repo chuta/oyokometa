@@ -54,7 +54,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
 
   if (missing) {
     return (
-      <div>
+      <div className="page">
         <h1 className="text-3xl mb-4">Record not found</h1>
         <p>
           <a href="/verify">Check your own image</a>
@@ -62,7 +62,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
       </div>
     );
   }
-  if (!view) return <p>Loading…</p>;
+  if (!view) return <p className="page">Loading…</p>;
 
   const withdrawn = view.status === "withdrawn";
   const dispute = async (e: React.FormEvent<HTMLFormElement>) => {

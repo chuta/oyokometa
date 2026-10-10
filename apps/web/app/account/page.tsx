@@ -104,7 +104,7 @@ export default function AccountPage() {
       ) : null}
       <p className="mt-2">Credit balance: {balance ?? "…"}</p>
       {records.length ? (
-        <ul className="mt-6 text-sm">
+        <ul className="record-list">
           {records.map((r) => (
             <li key={r.public_id}>
               <a href={`/verify/${r.public_id}`}>{r.public_id}</a> · {r.status} ·{" "}
@@ -174,7 +174,7 @@ export default function AccountPage() {
         </form>
       )}
 
-      <p className="mt-6 flex gap-3 flex-wrap">
+      <p className="action-row">
         <a className="btn" href="/create">
           Create a record
         </a>

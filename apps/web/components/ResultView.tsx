@@ -64,7 +64,7 @@ export function ResultView({ id }: { id: string }) {
       </div>
     );
   }
-  if (!data.findings) return <p>No findings object.</p>;
+  if (!data.findings) return <p className="page">No findings object.</p>;
 
   const del = async () => {
     await fetch(`/api/v1/analyses/${id}`, { method: "DELETE", credentials: "include" });

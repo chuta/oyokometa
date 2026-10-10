@@ -80,6 +80,31 @@ export default function HomePage() {
           </table>
         </div>
       </section>
+      <section className="roadmap" aria-labelledby="roadmap-heading">
+        <div className="audiences-inner">
+          <h2 id="roadmap-heading">Coming soon</h2>
+          <article className="soon-card">
+            <p className="kicker">Location</p>
+            <h3>A Nigerian Digital Postcode from the file</h3>
+            <p>
+              When a file still carries location metadata, Oyokometa will resolve it to a Digital
+              Postcode: state, local government area, and the distance to the nearest registered
+              building. Someone registering a record will be able to declare a postcode and see
+              whether that declaration agrees with the metadata.
+            </p>
+            <p>
+              This is aimed at journalists, observers and investigators who receive files that
+              still hold location metadata. Images forwarded through chat and social apps usually
+              do not. Location metadata can be edited or removed before the file reaches us, so a
+              postcode is not proof of where the picture was taken.
+            </p>
+            <p className="soon-note">
+              <a href="/analyze">Analyze an image</a> already reads the metadata in the file.
+              Postcode resolution is not available yet.
+            </p>
+          </article>
+        </div>
+      </section>
     </>
   );
 }

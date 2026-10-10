@@ -76,12 +76,18 @@ export default function AdminPage() {
     setUsers(j.users ?? []);
   };
 
-  if (err) return <p role="alert">{err}</p>;
+  if (err) {
+    return (
+      <p className="page" role="alert">
+        {err}
+      </p>
+    );
+  }
 
   return (
     <div className="page">
       <h1 className="text-3xl mb-4">Admin</h1>
-      <form onSubmit={lookup} className="mb-8 flex gap-2">
+      <form onSubmit={lookup} className="lookup-row">
         <input
           className="border border-line p-2 flex-1"
           value={q}
@@ -105,9 +111,11 @@ export default function AdminPage() {
       <ul className="space-y-2 text-sm mb-8">
         {disputes.map((d) => (
           <li key={String(d.id)} className="border border-line p-3">
-            {String(d.email)} · {String(d.status)} · {String(d.reason).slice(0, 80)}
+            <p>
+              {String(d.email)} · {String(d.status)} · {String(d.reason).slice(0, 80)}
+            </p>
             <button
-              className="btn-secondary btn ml-3"
+              className="btn-secondary btn"
               type="button"
               onClick={async () => {
                 const reason = prompt("Resolution reason?");
@@ -138,13 +146,17 @@ export default function AdminPage() {
           .filter((p) => p.status === "awaiting_match" || p.status === "awaiting_transfer")
           .map((p) => (
             <li key={String(p.id)} className="border border-line p-3">
-              <PaymentLine p={p} />
-              <button className="btn ml-3" type="button" onClick={() => settle(p, "confirm")}>
-                Confirm deposit
-              </button>
-              <button className="btn-secondary btn ml-2" type="button" onClick={() => settle(p, "reject")}>
-                Reject
-              </button>
+              <p>
+                <PaymentLine p={p} />
+              </p>
+              <p className="action-row">
+                <button className="btn" type="button" onClick={() => settle(p, "confirm")}>
+                  Confirm deposit
+                </button>
+                <button className="btn-secondary btn" type="button" onClick={() => settle(p, "reject")}>
+                  Reject
+                </button>
+              </p>
             </li>
           ))}
       </ul>
@@ -152,11 +164,15 @@ export default function AdminPage() {
       <ul className="space-y-2 text-sm">
         {payments.map((p) => (
           <li key={String(p.id)} className="border border-line p-3">
-            <PaymentLine p={p} />
+            <p>
+              <PaymentLine p={p} />
+            </p>
             {p.status === "paid" ? (
-              <button className="btn-secondary btn ml-3" type="button" onClick={() => reverse(String(p.id))}>
-                Reverse
-              </button>
+              <p className="action-row">
+                <button className="btn-secondary btn" type="button" onClick={() => reverse(String(p.id))}>
+                  Reverse
+                </button>
+              </p>
             ) : null}
           </li>
         ))}
