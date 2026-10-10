@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, eq, lte } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { ERROR_CODES } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
@@ -16,6 +16,7 @@ import { audit } from "../audit.js";
 import { sendAdminNotice, sendTransferInstructions } from "../email.js";
 import { publicAppOrigin } from "../origin.js";
 import { nextPaymentStatus } from "../payment-state.js";
+import { transferCooldownRemaining, transferWaitLabel } from "../transfer-cooldown.js";
 
 export const creditRoutes = new Hono();
 
@@ -52,7 +53,24 @@ creditRoutes.get("/credits", async (c) => {
     return c.json(apiError(ERROR_CODES.unauthorized, "Sign in required", auth.requestId), 401);
   }
   const wallet = await ensureWallet(auth.user.id);
-  return c.json({ balance: wallet.cachedBalance, wallet_id: wallet.id });
+  const db = getDb();
+  const [latest] = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.userId, auth.user.id))
+    .orderBy(desc(payments.createdAt))
+    .limit(1);
+  const remainingMs = transferCooldownRemaining(latest?.createdAt ?? null, new Date());
+  const open =
+    latest &&
+    remainingMs > 0 &&
+    (latest.status === "awaiting_transfer" || latest.status === "awaiting_match");
+  return c.json({
+    balance: wallet.cachedBalance,
+    wallet_id: wallet.id,
+    transfer_retry_after_seconds: Math.ceil(remainingMs / 1000),
+    open_payment_id: open ? latest.id : null,
+  });
 });
 
 creditRoutes.get("/credits/ledger", async (c) => {
@@ -89,6 +107,7 @@ creditRoutes.post("/payments/intents", async (c) => {
   if (!auth.user.emailVerified) {
     return c.json(apiError(ERROR_CODES.email_unverified, "Verify your email before buying credits", auth.requestId), 403);
   }
+  const user = auth.user;
   const body = await c.req.json<{ product_id?: string }>();
   const db = getDb();
   const [product] = await db
@@ -99,26 +118,57 @@ creditRoutes.post("/payments/intents", async (c) => {
   if (!product || !product.active) {
     return c.json(apiError(ERROR_CODES.validation_error, "Unknown pack", auth.requestId), 400);
   }
-  let reference = generateTransferReference();
-  for (let i = 0; i < 5; i++) {
-    const [clash] = await db.select().from(payments).where(eq(payments.referenceCode, reference)).limit(1);
-    if (!clash) break;
-    reference = generateTransferReference();
+  const created = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${user.id}::text))`);
+    const [latest] = await tx
+      .select()
+      .from(payments)
+      .where(eq(payments.userId, user.id))
+      .orderBy(desc(payments.createdAt))
+      .limit(1);
+    const remainingMs = transferCooldownRemaining(latest?.createdAt ?? null, new Date());
+    if (remainingMs > 0 && latest) {
+      return { blocked: true as const, remainingMs, paymentId: latest.id };
+    }
+    let reference = generateTransferReference();
+    for (let i = 0; i < 5; i++) {
+      const [clash] = await tx.select().from(payments).where(eq(payments.referenceCode, reference)).limit(1);
+      if (!clash) break;
+      reference = generateTransferReference();
+    }
+    const [payment] = await tx
+      .insert(payments)
+      .values({
+        userId: user.id,
+        provider: "bank_transfer",
+        providerRef: reference,
+        productId: product.id,
+        amountMinor: product.priceMinor,
+        currency: product.currency,
+        status: "awaiting_transfer",
+        referenceCode: reference,
+        creditsGranted: 0,
+      })
+      .returning();
+    return { blocked: false as const, payment, reference };
+  });
+  if (created.blocked) {
+    const seconds = Math.ceil(created.remainingMs / 1000);
+    c.header("Retry-After", String(seconds));
+    return c.json(
+      {
+        ...apiError(
+          ERROR_CODES.rate_limited,
+          `You can start another bank transfer in ${transferWaitLabel(created.remainingMs)}.`,
+          auth.requestId,
+        ),
+        retry_after_seconds: seconds,
+        payment_id: created.paymentId,
+      },
+      429,
+    );
   }
-  const [payment] = await db
-    .insert(payments)
-    .values({
-      userId: auth.user.id,
-      provider: "bank_transfer",
-      providerRef: reference,
-      productId: product.id,
-      amountMinor: product.priceMinor,
-      currency: product.currency,
-      status: "awaiting_transfer",
-      referenceCode: reference,
-      creditsGranted: 0,
-    })
-    .returning();
+  const { payment, reference } = created;
   if (!payment) {
     return c.json(apiError(ERROR_CODES.service_unavailable, "Could not create payment", auth.requestId), 503);
   }

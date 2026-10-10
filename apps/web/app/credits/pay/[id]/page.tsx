@@ -4,6 +4,42 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BusyLabel } from "@/components/ActionStatus";
 
+async function copyText(value: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    const el = document.createElement("textarea");
+    el.value = value;
+    el.setAttribute("readonly", "");
+    el.style.position = "fixed";
+    el.style.left = "-9999px";
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand("copy");
+    el.remove();
+    return ok;
+  }
+}
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    const ok = await copyText(value);
+    if (!ok) return;
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button type="button" className="btn-secondary btn copy-btn" onClick={copy} aria-label={`Copy ${label}`}>
+      {copied ? "Copied" : "Copy"}
+      <span className="sr-only" aria-live="polite">
+        {copied ? `${label} copied` : ""}
+      </span>
+    </button>
+  );
+}
+
 type Pay = {
   payment_id: string;
   status: string;
@@ -66,19 +102,33 @@ export default function PayPage() {
         Transfer <strong>{pay.amount_label}</strong> for <strong>{pay.credits} credits</strong>. Put
         this exact reference in the narration / description:
       </p>
-      <p className="mono text-xl border border-line p-4 mb-6">{pay.reference}</p>
+      <div className="copy-field copy-field-ref">
+        <div>
+          <p className="text-muted text-sm">Narration / description</p>
+          <p className="mono text-xl">{pay.reference}</p>
+        </div>
+        <CopyButton value={pay.reference} label="narration" />
+      </div>
       <dl className="space-y-2">
         <div>
           <dt className="text-muted text-sm">Bank</dt>
           <dd>{pay.bank.bank_name || "Set BANK_NAME in environment"}</dd>
         </div>
-        <div>
-          <dt className="text-muted text-sm">Account name</dt>
-          <dd>{pay.bank.account_name || "Set BANK_ACCOUNT_NAME"}</dd>
+        <div className="copy-field">
+          <div>
+            <dt className="text-muted text-sm">Account name</dt>
+            <dd>{pay.bank.account_name || "Set BANK_ACCOUNT_NAME"}</dd>
+          </div>
+          {pay.bank.account_name ? <CopyButton value={pay.bank.account_name} label="account name" /> : null}
         </div>
-        <div>
-          <dt className="text-muted text-sm">Account number</dt>
-          <dd className="mono">{pay.bank.account_number || "Set BANK_ACCOUNT_NUMBER"}</dd>
+        <div className="copy-field">
+          <div>
+            <dt className="text-muted text-sm">Account number</dt>
+            <dd className="mono">{pay.bank.account_number || "Set BANK_ACCOUNT_NUMBER"}</dd>
+          </div>
+          {pay.bank.account_number ? (
+            <CopyButton value={pay.bank.account_number} label="account number" />
+          ) : null}
         </div>
       </dl>
       {pay.status === "paid" ? (
