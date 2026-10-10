@@ -283,6 +283,7 @@ export const passwordResets = pgTable("password_resets", {
     .notNull()
     .references(() => users.id),
   tokenHash: text("token_hash").notNull().unique(),
+  purpose: text("purpose").notNull().default("password_reset"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   consumedAt: timestamp("consumed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BusyLabel, ProgressTrack, Spinner } from "./ActionStatus";
+import { ChargeConfirm } from "./ChargeConfirm";
 import { putFile } from "@/lib/put-file";
 
 const STAGES = [
@@ -28,6 +29,7 @@ export function AnalyzeForm() {
   const [stage, setStage] = useState<string | null>(null);
   const [deep, setDeep] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const router = useRouter();
 
   const onFile = (f: File | null) => {
@@ -100,9 +102,10 @@ export function AnalyzeForm() {
     }
   };
 
-  const run = async () => {
+  const run = async (expectedCredits?: number) => {
     if (!file) return;
     setError(null);
+    setConfirming(false);
     try {
       const id = assetId ?? (await upload(file));
       setPhase("analyzing");
@@ -111,7 +114,11 @@ export function AnalyzeForm() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", "Idempotency-Key": idem },
-        body: JSON.stringify({ asset_id: id, tier: deep ? "deep" : "quick" }),
+        body: JSON.stringify({
+          asset_id: id,
+          tier: deep ? "deep" : "quick",
+          ...(deep ? { expected_credits: expectedCredits } : {}),
+        }),
       });
       const job = await started.json();
       if (!started.ok) throw new Error(job.error?.message ?? "Could not start analysis");
@@ -200,7 +207,10 @@ export function AnalyzeForm() {
                 className="mr-2"
                 checked={deep}
                 disabled={phase === "uploading"}
-                onChange={(e) => setDeep(e.target.checked)}
+                onChange={(e) => {
+                  setDeep(e.target.checked);
+                  setConfirming(false);
+                }}
               />
               Deep Analysis (runs extra forensics and detectors; spends credits)
             </label>
@@ -209,13 +219,27 @@ export function AnalyzeForm() {
               Sign in for Deep Analysis. Quick Scan stays free.
             </p>
           )}
-          <button className="btn" type="button" onClick={run} disabled={!file || busy}>
-            <BusyLabel
-              busy={phase === "uploading"}
-              idle="Analyze"
-              working="Uploading…"
+          {confirming ? (
+            <ChargeConfirm
+              action="deep_analysis"
+              confirmLabel="Run Deep Analysis"
+              onConfirm={(cost) => void run(cost)}
+              onCancel={() => setConfirming(false)}
             />
-          </button>
+          ) : (
+            <button
+              className="btn"
+              type="button"
+              onClick={() => (deep ? setConfirming(true) : void run())}
+              disabled={!file || busy}
+            >
+              <BusyLabel
+                busy={phase === "uploading"}
+                idle={deep ? "Review price" : "Analyze"}
+                working="Uploading…"
+              />
+            </button>
+          )}
         </div>
       )}
       {error ? (

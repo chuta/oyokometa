@@ -203,7 +203,7 @@ authRoutes.post("/auth/password/reset", async (c) => {
   const [row] = await db
     .select()
     .from(passwordResets)
-    .where(eq(passwordResets.tokenHash, sha256Hex(token)))
+    .where(and(eq(passwordResets.tokenHash, sha256Hex(token)), eq(passwordResets.purpose, "password_reset")))
     .limit(1);
   if (!row || row.consumedAt || row.expiresAt < new Date()) {
     return c.json(apiError(ERROR_CODES.unauthorized, "This reset link is invalid or expired", auth.requestId), 401);

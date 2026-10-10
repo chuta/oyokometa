@@ -385,6 +385,12 @@ main {
   border-color: var(--line);
 }
 
+.btn-danger {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--ink);
@@ -640,6 +646,26 @@ textarea {
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 1.25rem;
+}
+
+.charge-confirm {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.25rem;
+  margin-top: 1rem;
+  max-width: 28rem;
+}
+
+.charge-lines {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.charge-lines dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .text-muted {

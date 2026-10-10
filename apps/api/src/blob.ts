@@ -57,6 +57,11 @@ export async function removeBlob(key: string) {
   await client().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
 }
 
+/** Legacy records point at the asset preview; only per-record copies may be deleted with the record. */
+export async function removeOwnedThumbnail(key: string | null | undefined) {
+  if (key?.startsWith("thumbnails/")) await removeBlob(key);
+}
+
 export async function presignPut(key: string, contentType: string) {
   if (useFs()) return null;
   return getSignedUrl(

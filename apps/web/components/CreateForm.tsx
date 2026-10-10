@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { REGISTRATION_ATTESTATION, RECORD_STATES } from "@oyokometa/config";
 import { TierTag } from "@oyokometa/findings-ui";
 import { BusyLabel, ProgressTrack, Spinner } from "./ActionStatus";
+import { ChargeConfirm } from "./ChargeConfirm";
 import { putFile } from "@/lib/put-file";
 
 type Findings = {
@@ -24,8 +25,7 @@ export function CreateForm() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [assetId, setAssetId] = useState<string | null>(null);
   const [findings, setFindings] = useState<Findings | null>(null);
-  const [cost, setCost] = useState<number | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [mode, setMode] = useState("file_registration");
   const [visibility, setVisibility] = useState("private");
   const [thumb, setThumb] = useState(false);
@@ -43,14 +43,6 @@ export function CreateForm() {
     fetch("/api/v1/me", { credentials: "include" })
       .then((r) => r.json())
       .then(setMe);
-    fetch("/api/v1/credits/actions", { credentials: "include" })
-      .then((r) => r.json())
-      .then((j) => setCost(j.actions?.provenance_registration ?? null));
-    fetch("/api/v1/credits", { credentials: "include" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (typeof j.balance === "number") setBalance(j.balance);
-      });
   }, []);
 
   const onFile = useCallback((f: File | null) => {
@@ -121,7 +113,7 @@ export function CreateForm() {
     }
   };
 
-  const register = async () => {
+  const register = async (expectedCredits: number) => {
     if (!assetId || !attested) return;
     setBusy(true);
     setError(null);
@@ -145,6 +137,7 @@ export function CreateForm() {
           display_name: displayName || null,
           declarations,
           attestation: true,
+          expected_credits: expectedCredits,
         }),
       });
       const j = await res.json();
@@ -153,6 +146,7 @@ export function CreateForm() {
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
+      setConfirming(false);
     }
   };
 
@@ -294,18 +288,32 @@ export function CreateForm() {
             Display name on the public page (optional)
             <input className="block w-full border border-line p-2 mt-1" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </label>
-          <p className="mt-6">
-            This registration costs <strong>{cost ?? "…"}</strong> credits
-            {balance != null ? ` (balance ${balance} → ${(balance ?? 0) - (cost ?? 0)})` : ""}.
-          </p>
-          <label className="block mt-4">
-            <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)} /> {REGISTRATION_ATTESTATION}
+          <label className="block mt-6">
+            <input
+              type="checkbox"
+              checked={attested}
+              onChange={(e) => {
+                setAttested(e.target.checked);
+                if (!e.target.checked) setConfirming(false);
+              }}
+            />{" "}
+            {REGISTRATION_ATTESTATION}
           </label>
-          <p className="mt-4">
-            <button className="btn" type="button" disabled={!attested || busy} onClick={register}>
-              <BusyLabel busy={busy} idle="Register this file" working="Signing…" />
-            </button>
-          </p>
+          {confirming ? (
+            <ChargeConfirm
+              action="provenance_registration"
+              confirmLabel="Register this file"
+              busy={busy}
+              onConfirm={(cost) => void register(cost)}
+              onCancel={() => setConfirming(false)}
+            />
+          ) : (
+            <p className="mt-4">
+              <button className="btn" type="button" disabled={!attested || busy} onClick={() => setConfirming(true)}>
+                Review price and register
+              </button>
+            </p>
+          )}
           {jobId ? (
             <p className="text-sm mt-2">
               Baseline analysis: <a href={`/a/${jobId}`}>{jobId}</a>

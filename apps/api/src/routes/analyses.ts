@@ -8,16 +8,15 @@ import {
   assets,
   evidenceItems,
   rawOutputs,
-  findings,
-  reports,
   actionCost,
   holdCredits,
 } from "@oyokometa/db";
 import { allowAnonymousScan, allowEndpoint } from "../rate-limit.js";
 import { enqueueAnalysis } from "../queue.js";
 import { notFound } from "../session.js";
-import { removeBlob } from "../blob.js";
 import { audit } from "../audit.js";
+import { purgeAssetBytes, purgeJob } from "../purge.js";
+import { priceChangedResponse, priceConfirmed } from "../price-check.js";
 
 const ERROR_MESSAGES = {
   unsupported_type: "This file type is not supported. Use JPEG, PNG, WebP, HEIC/HEIF or TIFF.",
@@ -49,7 +48,7 @@ analysisRoutes.post("/analyses", async (c) => {
     );
   }
   const idem = c.req.header("Idempotency-Key") ?? crypto.randomUUID();
-  const body = await c.req.json<{ asset_id: string; tier?: string }>();
+  const body = await c.req.json<{ asset_id: string; tier?: string; expected_credits?: number }>();
   const tier = body.tier === "deep" ? "deep" : "quick";
   if (tier === "deep" && !auth.user) {
     return c.json(
@@ -102,6 +101,10 @@ analysisRoutes.post("/analyses", async (c) => {
       403,
     );
   }
+  const deepCost = tier === "deep" ? await actionCost("deep_analysis") : 0;
+  if (tier === "deep" && !priceConfirmed(body.expected_credits, deepCost)) {
+    return priceChangedResponse(c, deepCost, auth.requestId);
+  }
 
   const [job] = await db
     .insert(analysisJobs)
@@ -120,9 +123,8 @@ analysisRoutes.post("/analyses", async (c) => {
     return c.json(apiError(ERROR_CODES.service_unavailable, ERROR_MESSAGES.service_unavailable, auth.requestId), 503);
   }
   if (tier === "deep" && auth.user) {
-    const cost = await actionCost("deep_analysis");
     try {
-      const hold = await holdCredits(auth.user.id, cost, job.id, auth.user.id);
+      const hold = await holdCredits(auth.user.id, deepCost, job.id, auth.user.id);
       await db.update(analysisJobs).set({ creditHoldId: hold.id }).where(eq(analysisJobs.id, job.id));
     } catch (err) {
       await db
@@ -247,22 +249,8 @@ analysisRoutes.delete("/analyses/:id", async (c) => {
     .limit(1);
   if (!job) return notFound(c);
   const [asset] = await db.select().from(assets).where(eq(assets.id, job.assetId)).limit(1);
-  if (asset?.storageKey) await removeBlob(asset.storageKey);
-  if (asset?.previewKey) await removeBlob(asset.previewKey);
-  await db.delete(findings).where(eq(findings.jobId, job.id));
-  await db.delete(evidenceItems).where(eq(evidenceItems.jobId, job.id));
-  await db.delete(rawOutputs).where(eq(rawOutputs.jobId, job.id));
-  await db.delete(reports).where(eq(reports.jobId, job.id));
-  await db
-    .update(analysisJobs)
-    .set({ deletedAt: new Date(), findings: null, updatedAt: new Date() })
-    .where(eq(analysisJobs.id, job.id));
-  if (asset) {
-    await db
-      .update(assets)
-      .set({ imageDeletedAt: new Date(), sha256: asset.sha256, updatedAt: new Date() })
-      .where(eq(assets.id, asset.id));
-  }
+  if (asset) await purgeAssetBytes(asset);
+  await purgeJob(job.id);
   await audit(auth.user?.id ?? auth.anon?.id ?? "anon", "analysis.delete", job.id, "user delete now");
   return c.json({ ok: true });
 });
@@ -279,6 +267,11 @@ analysisRoutes.post("/analyses/:id/upgrade", async (c) => {
     .where(and(eq(analysisJobs.id, c.req.param("id")), isNull(analysisJobs.deletedAt), ownerFilter(auth)))
     .limit(1);
   if (!job) return notFound(c);
+  const body = await c.req.json<{ expected_credits?: number }>().catch(() => ({}) as { expected_credits?: number });
+  const cost = await actionCost("deep_analysis");
+  if (!priceConfirmed(body.expected_credits, cost)) {
+    return priceChangedResponse(c, cost, auth.requestId);
+  }
   const idem = c.req.header("Idempotency-Key") ?? `upgrade:${job.id}`;
   const res = await db
     .insert(analysisJobs)
@@ -296,11 +289,14 @@ analysisRoutes.post("/analyses/:id/upgrade", async (c) => {
   if (!deep) {
     return c.json(apiError(ERROR_CODES.service_unavailable, ERROR_MESSAGES.service_unavailable, auth.requestId), 503);
   }
-  const cost = await actionCost("deep_analysis");
   try {
     const hold = await holdCredits(auth.user.id, cost, deep.id, auth.user.id);
     await db.update(analysisJobs).set({ creditHoldId: hold.id }).where(eq(analysisJobs.id, deep.id));
   } catch (err) {
+    await db
+      .update(analysisJobs)
+      .set({ status: "failed", errorCode: "insufficient_credits", errorMessage: "Not enough credits" })
+      .where(eq(analysisJobs.id, deep.id));
     if ((err as { code?: string }).code === "insufficient_credits") {
       return c.json(apiError(ERROR_CODES.insufficient_credits, "Not enough credits", auth.requestId), 402);
     }

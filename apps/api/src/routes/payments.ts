@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, lte } from "drizzle-orm";
 import { ERROR_CODES } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
@@ -8,20 +8,24 @@ import {
   creditWallets,
   creditLedger,
   payments,
-  purchaseCredits,
   ensureWallet,
   actionPrices,
 } from "@oyokometa/db";
 import { bankDetails, formatAmount, generateTransferReference } from "../bank.js";
 import { audit } from "../audit.js";
-import { sendAdminNotice, sendCreditsReceipt, sendTransferInstructions } from "../email.js";
+import { sendAdminNotice, sendTransferInstructions } from "../email.js";
 import { publicAppOrigin } from "../origin.js";
+import { nextPaymentStatus } from "../payment-state.js";
 
 export const creditRoutes = new Hono();
 
 creditRoutes.get("/credits/actions", async (c) => {
   const db = getDb();
-  const rows = await db.select().from(actionPrices);
+  const rows = await db
+    .select()
+    .from(actionPrices)
+    .where(lte(actionPrices.effectiveFrom, new Date()))
+    .orderBy(actionPrices.effectiveFrom);
   const latest = new Map<string, number>();
   for (const r of rows) latest.set(r.action, r.credits);
   return c.json({ actions: Object.fromEntries(latest) });
@@ -184,47 +188,27 @@ creditRoutes.post("/payments/:id/confirm", async (c) => {
   if (!payment || payment.userId !== auth.user.id) {
     return c.json({ error: { code: "not_found", message: "Not found", request_id: auth.requestId } }, 404);
   }
-  if (payment.status === "paid") {
-    const wallet = await ensureWallet(auth.user.id);
-    return c.json({ ok: true, status: "paid", balance: wallet.cachedBalance, already_claimed: true });
+  if (payment.status === "awaiting_match" || payment.status === "paid") {
+    return c.json({ ok: true, status: payment.status });
   }
-  if (payment.status !== "awaiting_transfer") {
-    return c.json(apiError(ERROR_CODES.conflict, "This payment cannot be confirmed", auth.requestId), 409);
+  const next = nextPaymentStatus(payment.status, "user_claim");
+  if (!next) {
+    return c.json(apiError(ERROR_CODES.conflict, "This payment cannot be marked as sent", auth.requestId), 409);
   }
-  const [product] = payment.productId
-    ? await db.select().from(creditProducts).where(eq(creditProducts.id, payment.productId)).limit(1)
-    : [];
-  if (!product) {
-    return c.json(apiError(ERROR_CODES.validation_error, "Pack missing", auth.requestId), 400);
-  }
-  await purchaseCredits(auth.user.id, product.credits, payment.id, auth.user.id);
-  await db
+  const claimed = await db
     .update(payments)
-    .set({
-      status: "paid",
-      claimedAt: new Date(),
-      creditsGranted: product.credits,
-      updatedAt: new Date(),
-    })
-    .where(eq(payments.id, payment.id));
-  const wallet = await ensureWallet(auth.user.id);
-  await audit(auth.user.id, "payment.confirmed", payment.id, "user clicked I have paid", {
-    reference: payment.referenceCode,
-    credits: product.credits,
-  });
-  try {
-    await sendCreditsReceipt({
-      email: auth.user.email,
-      credits: product.credits,
-      reference: payment.referenceCode ?? payment.id,
-      balance: wallet.cachedBalance,
-    });
-    await sendAdminNotice(`Credits claimed ${payment.referenceCode}`, [
-      `${auth.user.email} marked ${payment.referenceCode} as paid.`,
-      `${product.credits} credits granted.`,
-    ]);
-  } catch (err) {
-    console.error(JSON.stringify({ msg: "receipt_email_failed", message: (err as Error).message }));
+    .set({ status: next, claimedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(payments.id, payment.id), eq(payments.status, payment.status)))
+    .returning({ id: payments.id });
+  if (!claimed.length) {
+    return c.json({ ok: true, status: "awaiting_match" });
   }
-  return c.json({ ok: true, status: "paid", credits_granted: product.credits, balance: wallet.cachedBalance });
+  await audit(auth.user.id, "payment.claimed", payment.id, "user reported transfer sent", {
+    reference: payment.referenceCode,
+  });
+  await sendAdminNotice(`Transfer to match ${payment.referenceCode}`, [
+    `${auth.user.email} reports sending ${formatAmount(payment.amountMinor, payment.currency)} with reference ${payment.referenceCode}.`,
+    "Check the bank statement, then confirm or reject it in Admin. No credits are granted until you confirm.",
+  ]);
+  return c.json({ ok: true, status: next });
 });

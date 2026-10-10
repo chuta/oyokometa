@@ -75,6 +75,24 @@ export async function sendPasswordReset(email: string, url: string) {
   return { sent: out.sent, url };
 }
 
+export async function sendAccountDeletionLink(email: string, url: string) {
+  const out = await sendTransactional({
+    to: email,
+    subject: "Confirm deleting your Oyokometa account",
+    kicker: "Account",
+    heading: "Confirm account deletion",
+    preheader: "This confirmation link expires in 30 minutes.",
+    paragraphs: [
+      "Someone signed in to your account asked to delete it. Use the button below to continue. The link expires in 30 minutes and can be used once.",
+      "Deleting removes your images, analyses and reports, withdraws your provenance records, and forfeits unused credits. It cannot be undone.",
+      "If you did not ask for this, sign in and choose “Sign out everywhere”, then change your password.",
+    ],
+    ctaLabel: "Continue to delete",
+    ctaUrl: url,
+  });
+  return { sent: out.sent, url };
+}
+
 export async function sendMagicLink(email: string, url: string) {
   const out = await sendTransactional({
     to: email,
@@ -177,6 +195,25 @@ export async function sendCreditsReceipt(input: {
     ],
     ctaLabel: "View account",
     ctaUrl: `${origin}/account`,
+  });
+}
+
+export async function sendPaymentNotMatched(input: { email: string; reference: string; reason: string }) {
+  const origin = publicAppOrigin();
+  await sendTransactional({
+    to: input.email,
+    subject: `We could not match your transfer (${input.reference})`,
+    kicker: "Credits",
+    heading: "Transfer not matched",
+    preheader: `No deposit was matched to ${input.reference}.`,
+    paragraphs: [
+      "We could not find a deposit matching this reference, so no credits were added.",
+      `Reason: ${input.reason}`,
+      `If you did send the money, reply to this email with your bank receipt and the reference ${input.reference}.`,
+    ],
+    details: [{ label: "Reference", value: input.reference }],
+    ctaLabel: "View credits",
+    ctaUrl: `${origin}/credits`,
   });
 }
 

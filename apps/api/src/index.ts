@@ -15,7 +15,9 @@ import { shareRoutes } from "./routes/share.js";
 import { adminRoutes } from "./routes/admin.js";
 import { provenanceRoutes } from "./routes/provenance.js";
 import { disputeRoutes } from "./routes/disputes.js";
-import { getSigner } from "./signing/kms.js";
+import { accountRoutes } from "./routes/account.js";
+import { getSigner, retiredKeys } from "./signing/kms.js";
+import { startRetentionSchedule } from "./retention.js";
 
 const app = new Hono();
 const origins = (process.env.WEB_ORIGIN ?? "http://localhost:3000")
@@ -39,9 +41,7 @@ app.get("/health", (c) => c.json({ ok: true, service: "oyokometa-api" }));
 
 app.get("/.well-known/oyokometa-keys.json", (c) => {
   const signer = getSigner();
-  const retired = process.env.SIGNING_RETIRED_KEYS_JSON
-    ? (JSON.parse(process.env.SIGNING_RETIRED_KEYS_JSON) as unknown[])
-    : [];
+  const retired = retiredKeys();
   return c.json({
     issuer: process.env.API_PUBLIC_URL ?? origins[0] ?? "http://localhost:3000",
     credential_type: "platform_signed_record",
@@ -60,6 +60,7 @@ v1.route("/", shareRoutes);
 v1.route("/", adminRoutes);
 v1.route("/", provenanceRoutes);
 v1.route("/", disputeRoutes);
+v1.route("/", accountRoutes);
 v1.notFound((c) =>
   c.json(apiError(ERROR_CODES.not_found, "Not found", c.get("auth")?.requestId ?? "unknown"), 404),
 );
@@ -75,5 +76,6 @@ const port = Number(process.env.API_PORT ?? process.env.PORT ?? 4000);
 serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, () => {
   console.log(JSON.stringify({ msg: "api_listen", port, hostname: "0.0.0.0" }));
 });
+startRetentionSchedule();
 
 export { app };

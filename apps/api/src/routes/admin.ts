@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { desc, eq, or, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { ERROR_CODES } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
@@ -10,6 +10,9 @@ import {
   analysisJobs,
   shareLinks,
   creditWallets,
+  creditProducts,
+  ensureWallet,
+  purchaseCredits,
   reversePurchase,
   adjustCredits,
   reconcileWallet,
@@ -21,6 +24,10 @@ import { getSigner } from "../signing/kms.js";
 import { signEvent, sha256Utf8 } from "../signing/events.js";
 import { audit } from "../audit.js";
 import { notFound } from "../session.js";
+import { formatAmount } from "../bank.js";
+import { sendCreditsReceipt, sendPaymentNotMatched } from "../email.js";
+import { nextPaymentStatus } from "../payment-state.js";
+import { removeOwnedThumbnail } from "../blob.js";
 
 export const adminRoutes = new Hono();
 
@@ -34,19 +41,150 @@ adminRoutes.use("/admin/*", async (c, next) => {
 
 adminRoutes.get("/admin/payments", async (c) => {
   const db = getDb();
-  const rows = await db.select().from(payments).orderBy(desc(payments.createdAt)).limit(100);
+  const rows = await db
+    .select({
+      id: payments.id,
+      referenceCode: payments.referenceCode,
+      status: payments.status,
+      amountMinor: payments.amountMinor,
+      currency: payments.currency,
+      creditsGranted: payments.creditsGranted,
+      claimedAt: payments.claimedAt,
+      createdAt: payments.createdAt,
+      userEmail: users.email,
+      packName: creditProducts.name,
+      packCredits: creditProducts.credits,
+    })
+    .from(payments)
+    .leftJoin(users, eq(users.id, payments.userId))
+    .leftJoin(creditProducts, eq(creditProducts.id, payments.productId))
+    .orderBy(desc(payments.createdAt))
+    .limit(100);
   return c.json({ payments: rows });
+});
+
+function canSettlePayments(role: string) {
+  return role === "admin" || role === "finance";
+}
+
+adminRoutes.post("/admin/payments/:id/confirm", async (c) => {
+  const auth = c.get("auth");
+  if (!canSettlePayments(auth.user!.role)) return notFound(c);
+  const body = await c.req.json<{ reason?: string; amount_received_minor?: number }>().catch(() => ({}) as never);
+  if (!body.reason || typeof body.amount_received_minor !== "number") {
+    return c.json(
+      apiError(ERROR_CODES.validation_error, "Amount received and a reason are required", auth.requestId),
+      400,
+    );
+  }
+  const db = getDb();
+  const [payment] = await db.select().from(payments).where(eq(payments.id, c.req.param("id"))).limit(1);
+  if (!payment) return notFound(c);
+  const next = nextPaymentStatus(payment.status, "admin_confirm");
+  if (!next) {
+    return c.json(apiError(ERROR_CODES.conflict, `Payment is ${payment.status}`, auth.requestId), 409);
+  }
+  if (body.amount_received_minor !== payment.amountMinor) {
+    return c.json(
+      apiError(
+        ERROR_CODES.validation_error,
+        `Amount received does not match the pack price (${formatAmount(payment.amountMinor, payment.currency)})`,
+        auth.requestId,
+      ),
+      400,
+    );
+  }
+  const [product] = payment.productId
+    ? await db.select().from(creditProducts).where(eq(creditProducts.id, payment.productId)).limit(1)
+    : [];
+  if (!product) {
+    return c.json(apiError(ERROR_CODES.validation_error, "Pack missing", auth.requestId), 400);
+  }
+  const settled = await db
+    .update(payments)
+    .set({ status: next, creditsGranted: product.credits, updatedAt: new Date() })
+    .where(and(eq(payments.id, payment.id), eq(payments.status, payment.status)))
+    .returning({ id: payments.id });
+  if (!settled.length) {
+    return c.json(apiError(ERROR_CODES.conflict, "Payment was settled by someone else", auth.requestId), 409);
+  }
+  try {
+    await purchaseCredits(payment.userId, product.credits, payment.id, auth.user!.id);
+  } catch (err) {
+    await db
+      .update(payments)
+      .set({ status: payment.status, creditsGranted: 0, updatedAt: new Date() })
+      .where(eq(payments.id, payment.id));
+    throw err;
+  }
+  await audit(auth.user!.id, "admin.payment.confirm", payment.id, body.reason, {
+    reference: payment.referenceCode,
+    credits: product.credits,
+    amount_received_minor: body.amount_received_minor,
+  });
+  const wallet = await ensureWallet(payment.userId);
+  const [owner] = await db.select({ email: users.email }).from(users).where(eq(users.id, payment.userId)).limit(1);
+  if (owner) {
+    try {
+      await sendCreditsReceipt({
+        email: owner.email,
+        credits: product.credits,
+        reference: payment.referenceCode ?? payment.id,
+        balance: wallet.cachedBalance,
+      });
+    } catch (err) {
+      console.error(JSON.stringify({ msg: "receipt_email_failed", message: (err as Error).message }));
+    }
+  }
+  return c.json({ ok: true, status: next, credits_granted: product.credits });
+});
+
+adminRoutes.post("/admin/payments/:id/reject", async (c) => {
+  const auth = c.get("auth");
+  if (!canSettlePayments(auth.user!.role)) return notFound(c);
+  const body = await c.req.json<{ reason?: string }>().catch(() => ({}) as { reason?: string });
+  if (!body.reason) {
+    return c.json(apiError(ERROR_CODES.validation_error, "A reason is required", auth.requestId), 400);
+  }
+  const db = getDb();
+  const [payment] = await db.select().from(payments).where(eq(payments.id, c.req.param("id"))).limit(1);
+  if (!payment) return notFound(c);
+  const next = nextPaymentStatus(payment.status, "admin_reject");
+  if (!next) {
+    return c.json(apiError(ERROR_CODES.conflict, `Payment is ${payment.status}`, auth.requestId), 409);
+  }
+  await db
+    .update(payments)
+    .set({ status: next, updatedAt: new Date() })
+    .where(and(eq(payments.id, payment.id), eq(payments.status, payment.status)));
+  await audit(auth.user!.id, "admin.payment.reject", payment.id, body.reason, {
+    reference: payment.referenceCode,
+  });
+  const [owner] = await db.select({ email: users.email }).from(users).where(eq(users.id, payment.userId)).limit(1);
+  if (owner) {
+    try {
+      await sendPaymentNotMatched({
+        email: owner.email,
+        reference: payment.referenceCode ?? payment.id,
+        reason: body.reason,
+      });
+    } catch (err) {
+      console.error(JSON.stringify({ msg: "reject_email_failed", message: (err as Error).message }));
+    }
+  }
+  return c.json({ ok: true, status: next });
 });
 
 adminRoutes.post("/admin/payments/:id/reverse", async (c) => {
   const auth = c.get("auth");
+  if (!canSettlePayments(auth.user!.role)) return notFound(c);
   const body = await c.req.json<{ reason?: string }>();
   if (!body.reason) {
     return c.json(apiError(ERROR_CODES.validation_error, "A reason is required", auth.requestId), 400);
   }
   const db = getDb();
   const [payment] = await db.select().from(payments).where(eq(payments.id, c.req.param("id"))).limit(1);
-  if (!payment || payment.status !== "paid") {
+  if (!payment || !nextPaymentStatus(payment.status, "admin_reverse")) {
     return c.json(apiError(ERROR_CODES.conflict, "Payment is not paid", auth.requestId), 409);
   }
   await reversePurchase(payment.userId, payment.id, payment.creditsGranted, auth.user!.id);
@@ -160,6 +298,7 @@ adminRoutes.post("/admin/disputes/:id", async (c) => {
     }
   }
   if (body.outcome === "thumbnail_removed") {
+    await removeOwnedThumbnail(record.thumbnailKey);
     await db
       .update(provenanceRecords)
       .set({ showThumbnail: false, thumbnailKey: null, updatedAt: new Date() })
@@ -203,6 +342,7 @@ adminRoutes.post("/admin/disputes/:id", async (c) => {
       prevEventHash: last?.outputHash ?? null,
       createdAt: new Date(createdAt),
     });
+    await removeOwnedThumbnail(record.thumbnailKey);
     await db
       .update(provenanceRecords)
       .set({

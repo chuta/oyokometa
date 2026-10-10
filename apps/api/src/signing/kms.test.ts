@@ -1,6 +1,14 @@
 import { generateKeyPairSync } from "node:crypto";
-import { describe, expect, it } from "vitest";
-import { LocalPemSigner, parseJws } from "./kms.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  LocalPemSigner,
+  getSigner,
+  parseJws,
+  resetSignerForTests,
+  retiredKeyFromPem,
+  signerMode,
+  verifyRecordSignature,
+} from "./kms.js";
 import { canonicalJson } from "@oyokometa/shared";
 import { signEvent, verifyEventChain, sha256Utf8 } from "./events.js";
 import { declarationContradictions } from "./contradictions.js";
@@ -35,6 +43,44 @@ describe("platform_signed_record JWS", () => {
     const parts = jws.split(".");
     parts[1] = Buffer.from(canonicalJson({ a: 2 })).toString("base64url");
     expect(await signer.verifyJws(parts.join("."))).toBe(false);
+  });
+});
+
+describe("signing key policy", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetSignerForTests();
+  });
+
+  it("requires KMS in production unless the env-key exception is set", () => {
+    expect(() => signerMode({ NODE_ENV: "production", SIGNING_PRIVATE_KEY_PEM: "x" })).toThrow(/KMS/);
+    expect(signerMode({ NODE_ENV: "production", SIGNING_PRIVATE_KEY_PEM: "x", SIGNING_ALLOW_ENV_KEY: "true" })).toBe(
+      "env_pem",
+    );
+    expect(() => signerMode({ NODE_ENV: "production", SIGNING_ALLOW_ENV_KEY: "true" })).toThrow(/PEM/);
+    expect(
+      signerMode({ NODE_ENV: "production", AWS_KMS_KEY_ID: "k", SIGNING_PUBLIC_KEY_PEM: "p" }),
+    ).toBe("kms");
+    expect(signerMode({ NODE_ENV: "development" })).toBe("dev_file");
+  });
+
+  it("keeps verifying records signed by a retired key", async () => {
+    const oldPem = pem();
+    const old = new LocalPemSigner(oldPem, "okm-old");
+    const jws = await old.signPayload({ a: 1 });
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("SIGNING_PRIVATE_KEY_PEM", pem());
+    vi.stubEnv("SIGNING_KEY_ID", "okm-new");
+    vi.stubEnv(
+      "SIGNING_RETIRED_KEYS_JSON",
+      JSON.stringify([retiredKeyFromPem(oldPem, "okm-old", "2026-01-01T00:00:00Z", "2026-10-01T00:00:00Z")]),
+    );
+    resetSignerForTests();
+    expect(await verifyRecordSignature(jws, "okm-old")).toBe(true);
+    expect(await verifyRecordSignature(jws, "okm-new")).toBe(false);
+    expect(await verifyRecordSignature(jws, "okm-unknown")).toBe(false);
+    const fresh = await getSigner().signPayload({ b: 2 });
+    expect(await verifyRecordSignature(fresh, "okm-new")).toBe(true);
   });
 });
 

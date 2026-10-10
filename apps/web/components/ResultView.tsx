@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FindingsDashboard } from "@oyokometa/findings-ui";
 import { Spinner } from "./ActionStatus";
+import { ChargeConfirm } from "./ChargeConfirm";
 import type { FindingsObject } from "@oyokometa/evidence";
 
 export function ResultView({ id }: { id: string }) {
   const [data, setData] = useState<{
     status: string;
     stage: string;
+    tier?: string;
     findings: FindingsObject | null;
     preview_url: string | null;
     error_message: string | null;
@@ -18,6 +20,8 @@ export function ResultView({ id }: { id: string }) {
   const [wrong, setWrong] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [emailReport, setEmailReport] = useState(true);
+  const [pending, setPending] = useState<"report" | "upgrade" | null>(null);
+  const [charging, setCharging] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -95,12 +99,12 @@ export function ResultView({ id }: { id: string }) {
     setNotice(`${window.location.origin}${json.url}`);
   };
 
-  const report = async () => {
+  const report = async (expectedCredits: number) => {
     const res = await fetch(`/api/v1/analyses/${id}/reports`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ include_gps: false, email: emailReport }),
+      body: JSON.stringify({ include_gps: false, email: emailReport, expected_credits: expectedCredits }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -119,10 +123,12 @@ export function ResultView({ id }: { id: string }) {
     if (jsonRep) window.location.href = `/api/v1/reports/${jsonRep.id}`;
   };
 
-  const upgrade = async () => {
+  const upgrade = async (expectedCredits: number) => {
     const res = await fetch(`/api/v1/analyses/${id}/upgrade`, {
       method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ expected_credits: expectedCredits }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -132,6 +138,18 @@ export function ResultView({ id }: { id: string }) {
     router.push(`/a/${json.id}`);
   };
 
+  const charge = async (cost: number) => {
+    setCharging(true);
+    setNotice(null);
+    try {
+      if (pending === "report") await report(cost);
+      if (pending === "upgrade") await upgrade(cost);
+    } finally {
+      setCharging(false);
+      setPending(null);
+    }
+  };
+
   return (
     <div className="page">
       <FindingsDashboard
@@ -139,7 +157,7 @@ export function ResultView({ id }: { id: string }) {
         previewUrl={data.preview_url}
         onDelete={del}
         onShare={share}
-        onReport={report}
+        onReport={() => setPending("report")}
         onRevealGps={data.findings.gps_present ? gps : undefined}
       />
       <p className="mt-4">
@@ -152,10 +170,22 @@ export function ResultView({ id }: { id: string }) {
           />
           Email a signed-in link when a report is generated
         </label>
-        <button className="btn-secondary btn" type="button" onClick={upgrade}>
-          Upgrade to Deep Analysis
-        </button>
+        {data.tier !== "deep" ? (
+          <button className="btn-secondary btn" type="button" onClick={() => setPending("upgrade")}>
+            Upgrade to Deep Analysis
+          </button>
+        ) : null}
       </p>
+      {pending ? (
+        <ChargeConfirm
+          key={pending}
+          action={pending === "report" ? "report" : "deep_analysis"}
+          confirmLabel={pending === "report" ? "Generate report" : "Run Deep Analysis"}
+          busy={charging}
+          onConfirm={(cost) => void charge(cost)}
+          onCancel={() => setPending(null)}
+        />
+      ) : null}
       {notice ? <p className="mt-3">{notice}</p> : null}
       <form
         className="mt-8 text-sm"

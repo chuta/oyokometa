@@ -25,13 +25,14 @@ import {
 import { notFound } from "../session.js";
 import { allowEndpoint } from "../rate-limit.js";
 import { audit } from "../audit.js";
-import { getSigner } from "../signing/kms.js";
-import { recordHashFromCanonical, stampRecordHash } from "../signing/tsa.js";
+import { priceChangedResponse, priceConfirmed } from "../price-check.js";
+import { getSigner, verifyRecordSignature } from "../signing/kms.js";
+import { stampRecord } from "../signing/tsa.js";
 import { signEvent, sha256Utf8, verifyEventChain, type EventType } from "../signing/events.js";
 import { declarationContradictions } from "../signing/contradictions.js";
 import { qrSvg } from "../signing/qr.js";
 import { randomToken } from "../crypto.js";
-import { readBlob } from "../blob.js";
+import { readBlob, removeOwnedThumbnail, writeBlob } from "../blob.js";
 import { publicAppOrigin } from "../origin.js";
 import { sha256, perceptualHash } from "@oyokometa/worker/hash";
 
@@ -87,6 +88,7 @@ provenanceRoutes.post("/provenance", async (c) => {
     show_thumbnail?: boolean;
     display_name?: string | null;
     attestation?: boolean;
+    expected_credits?: number;
   }>();
   if (!body.attestation) {
     return c.json(
@@ -142,9 +144,13 @@ provenanceRoutes.post("/provenance", async (c) => {
     );
   }
 
+  const signer = getSigner();
   const recordId = crypto.randomUUID();
   const publicId = randomToken(16);
   const cost = await actionCost("provenance_registration");
+  if (!priceConfirmed(body.expected_credits, cost)) {
+    return priceChangedResponse(c, cost, auth.requestId);
+  }
   if (cost > 0) {
     try {
       await holdCredits(auth.user.id, cost, recordId, auth.user.id, "provenance_record");
@@ -167,7 +173,6 @@ provenanceRoutes.post("/provenance", async (c) => {
   } | null;
   const contradictions = declarationContradictions(parsed.data, findings);
   const registeredAt = new Date().toISOString();
-  const signer = getSigner();
   const dimensions =
     findings?.identity?.width && findings?.identity?.height
       ? `${findings.identity.width}×${findings.identity.height}`
@@ -196,9 +201,12 @@ provenanceRoutes.post("/provenance", async (c) => {
   const canonical = canonicalJson(canonicalPayload);
   try {
     const signature = await signer.signPayload(canonicalPayload);
-    const hash = recordHashFromCanonical(canonical);
-    const tsa = await stampRecordHash(hash);
-    const thumbnailKey = body.show_thumbnail && visibility === "public" ? asset.previewKey : null;
+    const tsa = await stampRecord(canonical);
+    let thumbnailKey: string | null = null;
+    if (body.show_thumbnail && visibility === "public" && asset.previewKey) {
+      thumbnailKey = `thumbnails/${recordId}.jpg`;
+      await writeBlob(thumbnailKey, await readBlob(asset.previewKey), "image/jpeg");
+    }
     await db.insert(provenanceRecords).values({
       id: recordId,
       publicId,
@@ -333,6 +341,7 @@ provenanceRoutes.post("/provenance/:id/events", async (c) => {
     patch.status = "withdrawn";
     patch.showThumbnail = false;
     patch.thumbnailKey = null;
+    await removeOwnedThumbnail(row.thumbnailKey);
     patch.declarations = {};
     patch.displayName = null;
   }
@@ -552,8 +561,7 @@ async function outcomeFor(
   phash: string | null,
   userId: string | null,
 ) {
-  const signer = getSigner();
-  const sigOk = await signer.verifyJws(row.signature);
+  const sigOk = await verifyRecordSignature(row.signature, row.signingKeyId);
   const events = await getDb()
     .select()
     .from(provenanceEvents)
@@ -628,8 +636,7 @@ async function publicRecordView(publicId: string, userId: string | null) {
     .from(provenanceEvents)
     .where(eq(provenanceEvents.recordId, row.id))
     .orderBy(asc(provenanceEvents.createdAt));
-  const signer = getSigner();
-  const sigOk = await signer.verifyJws(row.signature);
+  const sigOk = await verifyRecordSignature(row.signature, row.signingKeyId);
   const chain = verifyEventChain(
     row.canonicalJson,
     events.map((e) => ({

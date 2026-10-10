@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BusyLabel, Spinner } from "@/components/ActionStatus";
+import { DeleteAccountForm } from "@/components/DeleteAccountForm";
 
 type MeUser = {
   email: string;
@@ -190,6 +191,13 @@ export default function AccountPage() {
           Sign out everywhere
         </button>
       </p>
+
+      <details className="mt-12">
+        <summary className="cursor-pointer">Delete account</summary>
+        <div className="mt-4">
+          <DeleteAccountForm hasPassword={me.user.hasPassword !== false} />
+        </div>
+      </details>
     </div>
   );
 }

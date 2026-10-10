@@ -1,0 +1,27 @@
+# Private ClamAV daemon for upload scanning. No public ports; the API reaches it over Fly 6PN.
+# One-time setup:
+#   fly apps create oyokometa-clamav --org <org>
+#   fly volumes create clamav_db --app oyokometa-clamav --region lhr --size 1
+#   fly deploy --config infra/fly/clamav.toml --ha=false   (from repo root)
+# Then on the API: fly secrets set CLAMAV_HOST=oyokometa-clamav.internal --app oyokometa-api
+app = "oyokometa-clamav"
+primary_region = "lhr"
+
+[build]
+  dockerfile = "../clamav/Dockerfile"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2048mb"
+
+[mounts]
+  source = "clamav_db"
+  destination = "/var/lib/clamav"
+
+[checks]
+  [checks.clamd]
+    type = "tcp"
+    port = 3310
+    grace_period = "60s"
+    interval = "30s"
+    timeout = "5s"

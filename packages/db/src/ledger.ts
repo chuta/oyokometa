@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import { getDb } from "./index.js";
 import { actionPrices, creditLedger, creditWallets } from "./schema.js";
 
@@ -15,7 +15,7 @@ export async function actionCost(action: string): Promise<number> {
   const rows = await db
     .select()
     .from(actionPrices)
-    .where(eq(actionPrices.action, action))
+    .where(and(eq(actionPrices.action, action), lte(actionPrices.effectiveFrom, new Date())))
     .orderBy(sql`${actionPrices.effectiveFrom} desc`)
     .limit(1);
   return rows[0]?.credits ?? 0;

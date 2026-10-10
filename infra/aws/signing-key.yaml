@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Oyokometa record signing - ES256 KMS key and a sign-only IAM user for the API.
+# Deploy (eu-west-1):
+#   aws cloudformation deploy --stack-name oyokometa-signing --template-file infra/aws/signing-key.yaml \
+#     --capabilities CAPABILITY_NAMED_IAM --region eu-west-1 --profile oyokometa
+# Access keys for SignerUser are created outside the template so the secret never lands in stack outputs.
+
+Resources:
+  SigningKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Oyokometa provenance record signing (ES256)
+      KeySpec: ECC_NIST_P256
+      KeyUsage: SIGN_VERIFY
+      Enabled: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AccountAdministration
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: "*"
+          - Sid: ApiSignOnly
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt SignerUser.Arn
+            Action:
+              - kms:Sign
+              - kms:GetPublicKey
+              - kms:DescribeKey
+            Resource: "*"
+      Tags:
+        - Key: app
+          Value: oyokometa
+        - Key: purpose
+          Value: record-signing
+
+  SigningKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/oyokometa-signing
+      TargetKeyId: !Ref SigningKey
+
+  SignerUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: oyokometa-signer
+      Tags:
+        - Key: app
+          Value: oyokometa
+
+  SignerPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: oyokometa-signing-key-sign-only
+      Users:
+        - !Ref SignerUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - kms:Sign
+              - kms:GetPublicKey
+              - kms:DescribeKey
+            Resource: !GetAtt SigningKey.Arn
+
+Outputs:
+  KeyArn:
+    Value: !GetAtt SigningKey.Arn
+  SignerUserName:
+    Value: !Ref SignerUser

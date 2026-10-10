@@ -71,6 +71,7 @@ export const ERROR_CODES = {
   insufficient_credits: "insufficient_credits",
   email_unverified: "email_unverified",
   payment_required: "payment_required",
+  price_changed: "price_changed",
 } as const;
 
 export const FORBIDDEN_COPY = [

@@ -83,7 +83,7 @@ shareRoutes.get("/share/:public_id", async (c) => {
   return c.json({
     findings: publicFindings,
     include_image: link.includeImage,
-    preview_available: Boolean(link.includeImage && asset?.previewKey),
+    preview_available: Boolean(link.includeImage && asset?.previewKey && !asset.imageDeletedAt),
     acquisition_time_utc: findings.acquisition_time_utc,
     banner: "analysis of the file as submitted",
   });
@@ -94,9 +94,9 @@ shareRoutes.get("/share/:public_id/preview", async (c) => {
   const [link] = await db.select().from(shareLinks).where(eq(shareLinks.publicId, c.req.param("public_id"))).limit(1);
   if (!link || !link.includeImage || link.revokedAt || link.expiresAt < new Date()) return notFound(c);
   const [job] = await db.select().from(analysisJobs).where(eq(analysisJobs.id, link.jobId)).limit(1);
-  if (!job) return notFound(c);
+  if (!job || job.deletedAt) return notFound(c);
   const [asset] = await db.select().from(assets).where(eq(assets.id, job.assetId)).limit(1);
-  if (!asset?.previewKey || !useFs()) return notFound(c);
+  if (!asset?.previewKey || asset.imageDeletedAt || !useFs()) return notFound(c);
   const buf = await readBlob(asset.previewKey);
   return new Response(buf, {
     headers: {

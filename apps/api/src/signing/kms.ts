@@ -201,22 +201,93 @@ function loadOrCreateDevPem(): string {
 
 let _signer: KmsSigner | null = null;
 
+export type SignerMode = "kms" | "env_pem" | "dev_file";
+
+/** Production signs with KMS; an env PEM is accepted only while SIGNING_ALLOW_ENV_KEY=true. */
+export function signerMode(env: NodeJS.ProcessEnv = process.env): SignerMode {
+  if (env.AWS_KMS_KEY_ID && env.SIGNING_PUBLIC_KEY_PEM) return "kms";
+  if (env.NODE_ENV === "production") {
+    if (env.SIGNING_ALLOW_ENV_KEY !== "true") {
+      throw new Error(
+        "Production signing requires AWS KMS (AWS_KMS_KEY_ID and SIGNING_PUBLIC_KEY_PEM). " +
+          "SIGNING_ALLOW_ENV_KEY=true permits an env PEM as a temporary exception.",
+      );
+    }
+    if (!env.SIGNING_PRIVATE_KEY_PEM) throw new Error("SIGNING_PRIVATE_KEY_PEM is required when SIGNING_ALLOW_ENV_KEY=true");
+    return "env_pem";
+  }
+  return env.SIGNING_PRIVATE_KEY_PEM ? "env_pem" : "dev_file";
+}
+
 export function getSigner(): KmsSigner {
   if (_signer) return _signer;
   const kid = process.env.SIGNING_KEY_ID ?? "okm-dev-1";
-  if (process.env.AWS_KMS_KEY_ID && process.env.SIGNING_PUBLIC_KEY_PEM) {
+  const validFrom = process.env.SIGNING_KEY_VALID_FROM;
+  const mode = signerMode();
+  if (mode === "kms") {
     _signer = new AwsKmsSigner(
-      process.env.AWS_KMS_KEY_ID,
+      process.env.AWS_KMS_KEY_ID!,
       kid,
-      process.env.SIGNING_PUBLIC_KEY_PEM.replace(/\\n/g, "\n"),
+      process.env.SIGNING_PUBLIC_KEY_PEM!.replace(/\\n/g, "\n"),
     );
     return _signer;
   }
-  if (process.env.NODE_ENV === "production" && !process.env.SIGNING_PRIVATE_KEY_PEM && !process.env.AWS_KMS_KEY_ID) {
-    throw new Error("Signing key required in production (KMS or PEM)");
+  if (mode === "env_pem" && process.env.NODE_ENV === "production") {
+    console.warn(JSON.stringify({ msg: "signing_env_key_exception", kid }));
   }
-  _signer = new LocalPemSigner(loadOrCreateDevPem(), kid);
+  _signer = new LocalPemSigner(loadOrCreateDevPem(), kid, validFrom);
   return _signer;
+}
+
+export function retiredKeys(env: NodeJS.ProcessEnv = process.env): PublishedKey[] {
+  if (!env.SIGNING_RETIRED_KEYS_JSON) return [];
+  try {
+    const parsed = JSON.parse(env.SIGNING_RETIRED_KEYS_JSON) as unknown;
+    return Array.isArray(parsed) ? (parsed as PublishedKey[]) : [];
+  } catch {
+    console.error(JSON.stringify({ msg: "signing_retired_keys_invalid_json" }));
+    return [];
+  }
+}
+
+/** Public half of a PEM key, in the shape published under `retired` in oyokometa-keys.json. */
+export function retiredKeyFromPem(pem: string, kid: string, validFrom: string, validUntil: string): PublishedKey {
+  const jwk = createPublicKey(createPrivateKey(pem)).export({ format: "jwk" });
+  return {
+    kid,
+    kty: "EC",
+    crv: "P-256",
+    x: String(jwk.x),
+    y: String(jwk.y),
+    alg: "ES256",
+    use: "sig",
+    status: "retired",
+    valid_from: validFrom,
+    valid_until: validUntil,
+  };
+}
+
+/** Records keep verifying after rotation: pick the key named by the record, current or retired. */
+export async function verifyRecordSignature(jws: string, kid: string): Promise<boolean> {
+  let header: { alg?: string; kid?: string };
+  try {
+    header = parseJws(jws).header;
+  } catch {
+    return false;
+  }
+  if (header.kid && header.kid !== kid) return false;
+  const signer = getSigner();
+  if (kid === signer.keyId) return signer.verifyJws(jws);
+  const key = retiredKeys().find((k) => k.kid === kid);
+  if (!key) return false;
+  try {
+    const { signingInput, signature } = parseJws(jws);
+    if (header.alg !== "ES256") return false;
+    const pub = createPublicKey({ key: { kty: "EC", crv: "P-256", x: key.x, y: key.y }, format: "jwk" });
+    return nodeVerify("SHA256", Buffer.from(signingInput), { key: pub, dsaEncoding: "ieee-p1363" }, signature);
+  } catch {
+    return false;
+  }
 }
 
 export function resetSignerForTests() {

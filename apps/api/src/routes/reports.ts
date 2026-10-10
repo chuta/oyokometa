@@ -18,6 +18,7 @@ import { hashBuffer, jsonReportBytes, pdfReportBytes, reportPayload } from "../r
 import { EmailDeliveryError, sendReportLink } from "../email.js";
 import { publicAppOrigin } from "../origin.js";
 import { audit } from "../audit.js";
+import { priceChangedResponse, priceConfirmed } from "../price-check.js";
 
 export const reportRoutes = new Hono();
 
@@ -51,6 +52,9 @@ reportRoutes.post("/analyses/:id/reports", async (c) => {
   const body = await c.req.json().catch(() => ({ include_gps: false, email: false }));
   const includeGps = Boolean(body.include_gps);
   const cost = await actionCost("report");
+  if (!priceConfirmed(body.expected_credits, cost)) {
+    return priceChangedResponse(c, cost, auth.requestId);
+  }
   const holdId = crypto.randomUUID();
   try {
     await holdCredits(auth.user.id, cost, `report:${holdId}`, auth.user.id);

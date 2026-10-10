@@ -42,12 +42,12 @@ export default function PayPage() {
       credentials: "include",
     });
     const json = await res.json();
+    setBusy(false);
     if (!res.ok) {
-      setErr(json.error?.message ?? "Could not confirm");
-      setBusy(false);
+      setErr(json.error?.message ?? "Could not record your transfer");
       return;
     }
-    router.push("/account");
+    setPay((p) => (p ? { ...p, status: json.status ?? "awaiting_match" } : p));
   };
 
   if (err && !pay) return <p role="alert">{err}</p>;
@@ -76,11 +76,32 @@ export default function PayPage() {
         </div>
       </dl>
       {pay.status === "paid" ? (
-        <p className="mt-6">This transfer is already matched. Credits are on your account.</p>
+        <p className="mt-6">This transfer is matched. Credits are on your account.</p>
+      ) : pay.status === "awaiting_match" ? (
+        <div className="mt-6" role="status">
+          <p>
+            <strong>We&apos;re checking for your transfer.</strong> Credits are added once the deposit
+            is matched to reference <span className="mono">{pay.reference}</span>. We&apos;ll email you
+            when that happens.
+          </p>
+          <button className="btn-secondary btn mt-4" type="button" onClick={() => router.push("/account")}>
+            Back to account
+          </button>
+        </div>
+      ) : pay.status === "rejected" ? (
+        <p className="mt-6" role="status">
+          We could not match a deposit to this reference, so no credits were added. If you did send the
+          money, reply to the email we sent with your bank receipt.
+        </p>
       ) : (
-        <button className="btn mt-8" type="button" onClick={confirm} disabled={busy}>
-          <BusyLabel busy={busy} idle="I have paid" working="Confirming…" />
-        </button>
+        <>
+          <p className="text-muted text-sm mt-6">
+            Credits are added after we match your deposit, usually within one business day.
+          </p>
+          <button className="btn mt-4" type="button" onClick={confirm} disabled={busy}>
+            <BusyLabel busy={busy} idle="I have sent the transfer" working="Saving…" />
+          </button>
+        </>
       )}
       {err ? (
         <p className="mt-4" role="alert">

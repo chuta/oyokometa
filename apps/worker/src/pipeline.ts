@@ -22,7 +22,7 @@ import { buildTimeline, TIMESTAMP_PRODUCER } from "./analyzers/timestamps.js";
 import { analyzeStructure, STRUCTURE_PRODUCER } from "./analyzers/structure.js";
 import { analyzeC2pa, C2PA_PRODUCER } from "./analyzers/c2pa.js";
 import { detectorsForTier, mapScore, DETECTOR_PRODUCER } from "./analyzers/detectors.js";
-import { scanMalware } from "./analyzers/malware.js";
+import { MALWARE_PRODUCER, scanMalware } from "./analyzers/malware.js";
 import { ev } from "./evidence-factory.js";
 
 const DECODE_PRODUCER = "decode-worker@1.0.0";
@@ -71,6 +71,7 @@ export async function runPipeline(jobId: string): Promise<void> {
     structure: STRUCTURE_PRODUCER,
     c2pa: C2PA_PRODUCER,
     detector: DETECTOR_PRODUCER,
+    malware: MALWARE_PRODUCER,
   };
 
   try {
@@ -78,8 +79,15 @@ export async function runPipeline(jobId: string): Promise<void> {
     const buf = await readBlob(asset.storageKey);
 
     const malware = await scanMalware(buf);
-    if (malware === "flagged") {
-      throw Object.assign(new Error("malware flagged"), { code: "malware_flagged" });
+    await db.insert(rawOutputs).values({
+      jobId,
+      producer: MALWARE_PRODUCER,
+      payload: malware as unknown as Record<string, unknown>,
+    });
+    if (malware.status === "flagged") {
+      throw Object.assign(new Error("This file was flagged by malware scanning and was not analyzed."), {
+        code: "malware_flagged",
+      });
     }
 
     const magic = detectMagic(buf);

@@ -61,6 +61,10 @@ export default function CreditsPage() {
       ) : (
         <p className="mb-6">Balance: {balance ?? "…"} credits</p>
       )}
+      <p className="text-muted text-sm mb-6">
+        Pay by bank transfer with the reference we give you. Credits are added once we match the
+        deposit, usually within one business day.
+      </p>
       <ul className="pack-grid">
         {products.map((p) => (
           <li key={p.id} className="pack">
