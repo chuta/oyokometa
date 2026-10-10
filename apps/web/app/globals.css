@@ -424,14 +424,26 @@ main {
 }
 
 .soon-card {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 1.4rem 1.25rem 1.5rem;
-  max-width: 42rem;
+}
+
+@media (min-width: 800px) {
+  .soon-card {
+    grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+    gap: 2rem 3rem;
+    align-items: start;
+    padding: 2rem 2.25rem;
+  }
 }
 
 .soon-card h3 {
-  margin: 0.45rem 0 0.85rem;
+  margin: 0.45rem 0 0;
   font-size: clamp(1.35rem, 2.4vw, 1.7rem);
 }
 
@@ -440,7 +452,7 @@ main {
   color: var(--muted);
 }
 
-.soon-card p + p {
+.soon-copy p + p {
   margin-top: 0.9rem;
 }
 
