@@ -1,5 +1,5 @@
 import { FindingsDashboard } from "@oyokometa/findings-ui";
-import { LIMITATIONS_BLOCK, PUBLIC_PAGE_STANDING_LINE } from "@oyokometa/config";
+import { PUBLIC_PAGE_STANDING_LINE } from "@oyokometa/config";
 import { notFound } from "next/navigation";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -11,7 +11,7 @@ export default async function SharePage({ params }: { params: Promise<{ publicId
   if (!res.ok) notFound();
   const data = await res.json();
   return (
-    <div className="page">
+    <div className="page report-page">
       <p className="kicker">Shared analysis</p>
       <p className="mb-4">
         {data.banner}. Acquisition time (UTC): {data.acquisition_time_utc}
@@ -21,7 +21,6 @@ export default async function SharePage({ params }: { params: Promise<{ publicId
         previewUrl={data.preview_available ? `/api/v1/share/${publicId}/preview` : null}
       />
       <p className="mt-8 text-sm">{PUBLIC_PAGE_STANDING_LINE}</p>
-      <p className="text-sm">{LIMITATIONS_BLOCK}</p>
       <p className="mt-4">
         <a href="/abuse">Report abuse</a>
       </p>

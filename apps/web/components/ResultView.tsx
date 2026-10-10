@@ -151,7 +151,12 @@ export function ResultView({ id }: { id: string }) {
   };
 
   return (
-    <div className="page">
+    <div className="page report-page">
+      <p className="report-crumb">
+        <a href="/analyze">Analyze</a>
+        <span aria-hidden="true"> / </span>
+        Report
+      </p>
       <FindingsDashboard
         findings={data.findings}
         previewUrl={data.preview_url}
@@ -159,23 +164,24 @@ export function ResultView({ id }: { id: string }) {
         onShare={share}
         onReport={() => setPending("report")}
         onRevealGps={data.findings.gps_present ? gps : undefined}
+        footer={
+          <div className="report-options">
+            <label>
+              <input
+                type="checkbox"
+                checked={emailReport}
+                onChange={(e) => setEmailReport(e.target.checked)}
+              />
+              Email a signed-in link when a report is generated
+            </label>
+            {data.tier !== "deep" ? (
+              <button className="btn btn-secondary" type="button" onClick={() => setPending("upgrade")}>
+                Upgrade to Deep Analysis
+              </button>
+            ) : null}
+          </div>
+        }
       />
-      <p className="mt-4">
-        <label className="mr-4">
-          <input
-            type="checkbox"
-            className="mr-2"
-            checked={emailReport}
-            onChange={(e) => setEmailReport(e.target.checked)}
-          />
-          Email a signed-in link when a report is generated
-        </label>
-        {data.tier !== "deep" ? (
-          <button className="btn-secondary btn" type="button" onClick={() => setPending("upgrade")}>
-            Upgrade to Deep Analysis
-          </button>
-        ) : null}
-      </p>
       {pending ? (
         <ChargeConfirm
           key={pending}

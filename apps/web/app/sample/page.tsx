@@ -56,7 +56,7 @@ const findings = buildFindingsObject({
 
 export default function SamplePage() {
   return (
-    <div className="page">
+    <div className="page report-page">
       <p className="kicker">Non-personal sample</p>
       <FindingsDashboard findings={findings} />
     </div>
