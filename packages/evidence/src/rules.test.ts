@@ -142,4 +142,22 @@ describe("rules engine", () => {
     });
     expect(obj.categories.ai.classification).toBe("AI analysis not yet available");
   });
+
+  it("says the AI check is unavailable when a detector did not finish", () => {
+    const obj = buildFindingsObject({
+      evidence_id: "h",
+      items: [],
+      identity,
+      timeline: [],
+      c2pa: c2paEmpty,
+      acquisition_time_utc: "2026-01-01T00:00:00Z",
+      analyzer_versions: {},
+      trust_list_version: null,
+      tier_computed: "deep",
+      gps_present: false,
+      ai_labels_enabled: true,
+      ai_unavailable: true,
+    });
+    expect(obj.categories.ai.classification).toBe("AI analysis unavailable");
+  });
 });

@@ -22,4 +22,5 @@ Substitutions and defaults from PRD v3.0 §10 / §14. Recorded as required by §
 | Reports | PDF renderer | `pdf-lib` in the API process | |
 | Observability | Logs, metrics, alerts | Fly logs only (structured JSON lines) | No metrics or alerting yet. |
 | Database | PostgreSQL | Supabase Postgres (`vpvhshoxwaorrwtaxvdb`) | App still uses Drizzle over `DATABASE_URL`. Data API locked with RLS; Hono uses the database URI. |
-| AI labels | Off until §12 gate | `config.ai_labels_enabled` default false | AN-32 |
+| AI labels | Off until §12 gate | `config.ai_labels_enabled` default false. Detector scores are stored and are not shown, and they do not change a finding until the gate is recorded. | AN-32 |
+| AI detectors | One on Quick Scan, two on Deep Analysis | Quick Scan and Deep Analysis call a private Fly app (`oyokometa-detector`, `infra/detector/fly.toml`) running Community Forensics ViT-Small (`adapter-a`, ONNX v1.1). Deep Analysis also calls Sightengine `genai` and `deepfake` in one request (`adapter-b`). A Sightengine timeout or error releases the Deep Analysis hold and marks AI analysis unavailable. The vendor name stays in this note and the privacy notice, not in analysis output. | No watermark detector is available. Labels stay off until the §12 corpus passes. Sightengine credentials are `SIGHTENGINE_API_USER` and `SIGHTENGINE_API_SECRET`. |

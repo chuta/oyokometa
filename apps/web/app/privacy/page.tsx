@@ -10,7 +10,11 @@ export default function PrivacyPage() {
         <li>Uploaded images are never used to train or tune any model.</li>
         <li>Anonymous originals are deleted after 24 hours; signed-in after 30 days, unless you delete sooner.</li>
         <li>Analytics events never contain file names, hashes, metadata values, GPS, or image content.</li>
-        <li>Sub-processors (when configured): hosting, object storage, optional external detectors named here when used.</li>
+        <li>
+          Deep Analysis sends the image to Sightengine for an AI-image score and a face-manipulation score.
+          Sightengine deletes the file after processing. Oyokometa does not submit images to Sightengine&apos;s
+          training feedback. Quick Scan is scored on Oyokometa&apos;s own server and is not sent to Sightengine.
+        </li>
         <li>Delete now removes the image, previews, evidence record and reports from primary storage within minutes.</li>
       </ul>
     </article>

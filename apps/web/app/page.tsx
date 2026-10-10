@@ -49,6 +49,76 @@ export default function HomePage() {
           <p>Analysis that can be wrong. Lower-tier signals never override a higher tier.</p>
         </article>
       </section>
+      <section className="audiences" aria-labelledby="audiences-heading">
+        <div className="audiences-inner">
+          <h2 id="audiences-heading">Who we are building for</h2>
+          <p className="audiences-intro">
+            Analyze, Create and Verify are live. Some of the needs below are still ahead of the
+            product. Each one starts with a feature you can use today.
+          </p>
+          <table className="audience-table">
+            <thead>
+              <tr>
+                <th scope="col">Audience</th>
+                <th scope="col">What they need from us</th>
+                <th scope="col">Try it</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audiences.map((row) => (
+                <tr key={row.audience}>
+                  <th scope="row">{row.audience}</th>
+                  <td>{row.need}</td>
+                  <td>
+                    <a className="btn audience-cta" href={row.href}>
+                      {row.action}
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
+
+const audiences = [
+  {
+    audience: "Everyday users",
+    need: "A fast, plain answer about a suspicious image, where they already are",
+    action: "Analyze an image",
+    href: "/analyze",
+  },
+  {
+    audience: "Journalists and fact-checkers",
+    need: "Evidence they can cite, share and defend before publishing",
+    action: "Analyze an image",
+    href: "/analyze",
+  },
+  {
+    audience: "Lawyers and investigators",
+    need: "Reproducible records, case organisation and exportable evidence",
+    action: "Create a record",
+    href: "/create",
+  },
+  {
+    audience: "Creators, newsrooms and brands",
+    need: "A way to establish a record before an image is copied or altered",
+    action: "Create a record",
+    href: "/create",
+  },
+  {
+    audience: "Election observers and civic groups",
+    need: "Rapid, non-partisan checks that can be shared publicly",
+    action: "Check an image",
+    href: "/check",
+  },
+  {
+    audience: "Enterprises: banks, insurers, marketplaces, platforms",
+    need: "Image checks at volume, inside their own systems",
+    action: "Verify a file",
+    href: "/verify",
+  },
+] as const;

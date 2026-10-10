@@ -21,7 +21,7 @@ import { extractMetadata, METADATA_PRODUCER } from "./analyzers/metadata.js";
 import { buildTimeline, TIMESTAMP_PRODUCER } from "./analyzers/timestamps.js";
 import { analyzeStructure, STRUCTURE_PRODUCER } from "./analyzers/structure.js";
 import { analyzeC2pa, C2PA_PRODUCER } from "./analyzers/c2pa.js";
-import { detectorsForTier, mapScore, DETECTOR_PRODUCER } from "./analyzers/detectors.js";
+import { mapScore, runDetectors, shouldReleaseDeepHold, DETECTOR_PRODUCER } from "./analyzers/detectors.js";
 import { MALWARE_PRODUCER, scanMalware } from "./analyzers/malware.js";
 import { ev } from "./evidence-factory.js";
 
@@ -428,29 +428,45 @@ export async function runPipeline(jobId: string): Promise<void> {
     const [gate] = await db.select().from(config).where(eq(config.key, "ai_labels_enabled")).limit(1);
     const aiLabelsEnabled = gate?.value === true || gate?.value === "true";
 
-    if (job.tier === "deep" || job.tier === "quick") {
-      const dets = detectorsForTier(job.tier === "deep" ? "deep" : "quick");
-      for (const d of dets) {
-        const r = await d.analyze(buf);
-        await db.insert(rawOutputs).values({
-          jobId,
-          producer: `${r.model_id}@${r.model_version}`,
-          payload: r as unknown as Record<string, unknown>,
-        });
-        const band = mapScore(r.raw_score);
-        if (band !== "none") {
-          items.push(
-            ev({
-              category: "model",
-              signal: band === "strong" ? "detector_strong" : "detector_weak",
-              value: band,
-              source: "detector-adapter",
-              tier: "inferred",
-              producer: `${r.model_id}@${r.model_version}`,
-              raw_ref: "raw/detector.json",
-            }),
-          );
-        }
+    const tier = job.tier === "deep" ? "deep" : "quick";
+    const detectorRuns = await runDetectors(buf, tier);
+    const aiUnavailable = shouldReleaseDeepHold(tier, detectorRuns);
+    for (const run of detectorRuns) {
+      await db.insert(rawOutputs).values({
+        jobId,
+        producer: run.result ? `${run.result.model_id}@${run.result.model_version}` : DETECTOR_PRODUCER,
+        payload: (run.result ?? { error: run.error, unavailable: true }) as unknown as Record<string, unknown>,
+      });
+      // Labels stay off until the gate. A failed external check also adds no detector evidence,
+      // so one vendor cannot decide the result on its own.
+      if (!aiLabelsEnabled || aiUnavailable || !run.result) continue;
+      const band = mapScore(run.result.raw_score);
+      if (band !== "none") {
+        items.push(
+          ev({
+            category: "model",
+            signal: band === "strong" ? "detector_strong" : "detector_weak",
+            value: band,
+            source: "detector-adapter",
+            tier: "inferred",
+            producer: DETECTOR_PRODUCER,
+            raw_ref: "raw/detector.json",
+          }),
+        );
+      }
+      const face = run.result.face_manipulation_score;
+      if (face !== null && mapScore(face) === "strong") {
+        items.push(
+          ev({
+            category: "model",
+            signal: "face_manipulation",
+            value: "strong",
+            source: "detector-adapter",
+            tier: "inferred",
+            producer: DETECTOR_PRODUCER,
+            raw_ref: "raw/detector.json",
+          }),
+        );
       }
     }
 
@@ -489,9 +505,10 @@ export async function runPipeline(jobId: string): Promise<void> {
       acquisition_time_utc: job.createdAt.toISOString(),
       analyzer_versions: analyzerVersions,
       trust_list_version: c2pa.trust_list_version,
-      tier_computed: job.tier === "deep" ? "deep" : "quick",
+      tier_computed: tier,
       gps_present: Boolean(meta.gps),
       ai_labels_enabled: Boolean(aiLabelsEnabled),
+      ai_unavailable: aiUnavailable,
     });
 
     if (items.length) {
@@ -537,7 +554,10 @@ export async function runPipeline(jobId: string): Promise<void> {
         updatedAt: new Date(),
       })
       .where(eq(analysisJobs.id, jobId));
-    if (job.creditHoldId) await captureHold(jobId, "worker");
+    if (job.creditHoldId) {
+      if (aiUnavailable) await releaseHold(jobId, "worker");
+      else await captureHold(jobId, "worker");
+    }
   } catch (err) {
     const { code, message } = failCode(err);
     await db

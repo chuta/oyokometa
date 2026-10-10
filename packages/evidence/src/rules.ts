@@ -157,12 +157,23 @@ export function buildFindingsObject(input: {
   tier_computed: "quick" | "deep";
   gps_present: boolean;
   ai_labels_enabled: boolean;
+  ai_unavailable?: boolean;
 }): FindingsObject {
   const { executive, supporting } = evaluateRules(input.items);
   const editing =
     supporting.find((s) => s.category === "editing") ??
     pick("R11", "editing", []);
-  const aiFinding: Finding = input.ai_labels_enabled
+  const aiFinding: Finding = input.ai_unavailable
+    ? {
+        category: "ai",
+        classification: "AI analysis unavailable",
+        confidence: "Insufficient evidence",
+        rule_id: "AI-UNAVAILABLE",
+        evidence_ids: [],
+        summary:
+          "An AI check did not finish. The rest of this result still stands. A Deep Analysis charge for this run is released when one was held.",
+      }
+    : input.ai_labels_enabled
     ? supporting.find((s) => s.rule_id === "R9" || s.rule_id === "R10") ?? {
         category: "ai",
         classification:

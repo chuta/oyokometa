@@ -26,6 +26,7 @@ export const SIGNAL_STRENGTH: Record<string, Strength> = {
   detector_strong: "strong",
   detector_weak: "weak",
   detector_none: "none",
+  face_manipulation: "strong",
   trailing_data: "weak",
   double_compression: "moderate",
 };

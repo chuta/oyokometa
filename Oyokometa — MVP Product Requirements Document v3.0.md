@@ -545,56 +545,62 @@ One schema replaces the two in v2.0. All tables have `id` (UUID or ULID), `creat
 - **API-2** Authorisation is checked on every object by owner. A request for another user's object returns the same response as a non-existent one.
 - **API-3** Third-party API keys are post-MVP, but nothing in the web app uses a private endpoint the future API would lack.
 
-## 12. Quality benchmark, testing and metrics
+## 12. Quality Assurance, Testing and Release Gates
 
-### 12.1 Benchmark corpus
+Oyokometa will use a phased validation approach. R1 prioritises reliable file analysis, provenance verification and transparent reporting. Advanced AI-image detection will remain experimental until its performance has been independently evaluated against a representative test set.
 
-Build this during R1, before any AI label reaches a user. Minimum 3,000 images *(default)*, with known ground truth and documented source for each.
+The size of the AI benchmark corpus is not a prerequisite for releasing deterministic functionality.
 
-| Group | Minimum | Contents |
-| --- | --: | --- |
-| A. Camera originals | 600 | iPhone, Samsung, Pixel, Tecno/Infinix/itel, Canon, Nikon, Sony, DJI; varied lighting and subjects |
-| B. Edited genuine | 400 | Photoshop, Lightroom, GIMP, Canva, Snapseed, phone editors |
-| C. AI-generated | 600 | At least six current generators, photoreal and illustrative |
-| D. AI-assisted | 300 | Real photos with generative fill, object removal, upscaling |
-| E. Screens, scans, graphics | 300 | Screenshots, scanned prints, designed posters and flyers |
-| F. Redistributed | 800 | Samples from A to D passed through WhatsApp, Facebook, Instagram, X, Telegram, screenshot, resize, recompress; at least two chains each |
+### 12.1 R1 test corpus
 
-Group A deliberately includes the phone brands most common in Nigeria and the region; v2.0's list omitted them. Hold out 20% of the corpus that detector tuning never sees.
+Maintain a small, curated test corpus covering the file types and behaviours supported by the MVP.
 
-### 12.2 Release gate for AI labels (AN-32)
+| Group | Initial target | Contents |
+| --- | ---: | --- |
+| A. Camera originals | 30 | Genuine images from a range of phones and cameras, including devices commonly used in Nigeria |
+| B. Edited genuine images | 20 | Images edited using common photo editors and design tools |
+| C. AI-generated images | 30 | Images from multiple available image generators |
+| D. AI-assisted images | 10 | Genuine images modified using generative fill, object removal or similar tools |
+| E. Screenshots and redistributed images | 20 | Screenshots, resized images, recompressed files and images shared through common platforms |
+| F. Provenance and malformed-file fixtures | As needed | Valid, modified and untrusted C2PA examples, missing metadata, contradictory metadata, unsupported formats and malformed files |
 
-Measured on the held-out set, at the thresholds that will ship:
+These are initial engineering test fixtures, not a statistically representative dataset and not sufficient to establish broad AI-detection accuracy.
 
-- **QA-1** *Strong* signal false-positive rate on genuine images (groups A, B, E and their group F derivatives) at or below 1%.
-- **QA-2** Rule 9 ("AI signals detected") fires wrongly on genuine images at or below 0.5%.
-- **QA-3** *Strong* signal recall on group C originals at or above 80%. Recall on redistributed AI images is reported but not gated; expect it to be much lower and say so in the limitations text.
-- **QA-4** No single phone brand or skin-tone subset in group A has a false-positive rate more than twice the overall rate.
-- **QA-5** The benchmark re-runs on every detector, threshold or ruleset change. A regression past any gate blocks release.
+Record the source and known characteristics of each fixture where available. Separate development fixtures from a small holdout set for regression testing. Expand the corpus as the product and detector mature.
 
-If no detector combination passes, ship R1 with AI labels off (AN-32) and deterministic disclosures only. That is an acceptable R1.
+### 12.2 AI-detection release policy (AN-32)
 
-### 12.3 Deterministic accuracy
+**R1 default: AI detection is advisory and disabled in user-facing reports until the minimum validation requirements are met.**
 
-- **QA-6** Camera make and model reported correctly on 99% or more of group A originals.
-- **QA-7** C2PA validation agrees with the reference validator on 100% of a C2PA test set (valid, tampered, untrusted signer, legacy).
-- **QA-8** No image in the corpus crashes or hangs a worker. Add a fuzzed and malformed-file set of 200 files with the same requirement.
+The development team may evaluate one candidate detector in shadow mode. Its outputs must not be presented to users as established findings while it remains unvalidated.
 
-### 12.4 Product metrics and targets
+Before enabling user-facing AI signals:
 
-| Metric | Target for first 90 days *(default)* |
-| --- | --- |
-| Upload to Quick Scan completion rate | 95% or more |
-| Pipeline failure rate | Under 1% |
-| Unsupported-file rate | Tracked; investigate above 5% |
-| Quick Scan to account creation | 8% |
-| Account to first purchase | 15% |
-| Share links per 100 reports | Tracked |
-| Repeat analysis within 30 days | 25% of accounts |
-| Verify-page visitor to own Quick Scan | 5% |
-| User-reported wrong finding rate | Tracked; every report reviewed and added to the corpus |
+- **QA-1 — Genuine-image false positives:** Evaluate the detector on a separately held-out set of genuine camera originals, edited images and redistributed derivatives. Report false-positive rates and sample sizes. Do not make a broad accuracy claim from a small sample.
+- **QA-2 — Label discipline:** AI detection must not independently produce a definitive "AI-generated" or "genuine" verdict. Use qualified language such as "AI-generation signals detected" only when the evidence and validation support it.
+- **QA-3 — Coverage:** Evaluate multiple generators and image transformations, including resizing, compression, screenshots and editing. Document cases in which the detector fails or cannot reach a conclusion.
+- **QA-4 — Bias and robustness:** Where sufficient test data exists, compare performance across device types, image categories and relevant demographic characteristics. Treat small subgroup results as exploratory rather than conclusive.
+- **QA-5 — Regression:** Re-run the available detector tests whenever the model, preprocessing pipeline, threshold or evidence rules change. Record model version, configuration and test results.
 
-- **QA-9** Every result has a "This looks wrong" control that captures consent to retain the image for review. Without consent, only the evidence record is reviewed.
+Do not expose a detector score as a probability that an image is fake unless that score has been appropriately calibrated and validated for the intended use.
+
+If the detector does not meet the required standard, R1 ships without user-facing AI-origin labels. Metadata, provenance and other deterministic findings remain available.
+
+### 12.3 Deterministic functionality and provenance
+
+- **QA-6 — Metadata accuracy:** Correctly extract camera make, model, timestamps and other supported fields when they are present and parseable. Missing, ambiguous or contradictory fields must be reported as unavailable or uncertain—not inferred as facts.
+- **QA-7 — C2PA validation:** Match a trusted reference validator across the supported test fixtures, including valid manifests, tampered content, untrusted signers and legacy or unsupported cases. Clearly distinguish cryptographic validation from trust in a signer or the truth of the depicted scene.
+- **QA-8 — File integrity:** Calculate and preserve the hash of the exact uploaded bytes before any transformation. Verification must correctly distinguish exact byte matches from visually similar or modified images.
+- **QA-9 — Reliability and security:** Supported valid files must process without crashes or indefinite hangs. Include malformed and adversarial test files, enforce file-size and resource limits, and reject unsupported inputs safely.
+- **QA-10 — Provenance creation and verification:** Verify that a created record is bound to the correct file fingerprint and that subsequent verification correctly identifies matching and non-matching files. Clearly state that registration proves a record was created for particular bytes; it does not independently prove authorship, capture time or event authenticity.
+
+### 12.4 Release decision
+
+R1 may ship when the deterministic functionality passes its applicable tests, unsupported or ambiguous cases are handled safely, and reports clearly communicate limitations.
+
+Advanced AI detection may be introduced in a later release after a larger held-out benchmark demonstrates acceptable performance for the specific claims and use cases being enabled.
+
+Every release must preserve the distinction between **Verified**, **Detected**, **Inferred** and **Inconclusive** findings. No single detector score or missing metadata field should be treated as conclusive proof of authenticity or manipulation.
 
 ## 13. Build plan, agent guardrails and acceptance criteria
 
@@ -680,7 +686,7 @@ The agent MUST: version every analyzer, ruleset and detector; store raw output b
 - [ ] Conflict fixture (camera EXIF plus strong detector) shows "Conflicting evidence".
 - [ ] Benchmark gate result is recorded; AI labels are on only if it passed.
 - [ ] Delete removes image, previews and evidence; verified in storage.
-- [ ] Malformed-file set causes no crash or hang (QA-8).
+- [ ] Malformed-file set causes no crash or hang (QA-9).
 - [ ] Terms, privacy notice, acceptable-use policy and the AB-2 procedure are live.
 - [ ] WCAG 2.1 AA audit passes on upload and result screens.
 

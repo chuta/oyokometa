@@ -136,3 +136,13 @@ export const PROCESSED_BY_TEMPLATE = (software: string) =>
   `processed by ${software}; this does not establish what was changed`;
 
 export const AI_SECTION_UNAVAILABLE = "AI analysis not yet available";
+
+export const AI_SECTION_CHECK_FAILED = "AI analysis unavailable";
+
+/** Starting bands for detector scores. The §12 benchmark replaces these before labels are turned on. */
+export const DETECTOR_THRESHOLDS = {
+  weak: 0.6,
+  strong: 0.85,
+} as const;
+
+export const DETECTOR_TIMEOUT_MS = 30_000;
