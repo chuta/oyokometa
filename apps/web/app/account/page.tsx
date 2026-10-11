@@ -56,6 +56,7 @@ export default function AccountPage() {
   const [billing, setBilling] = useState<BillingFields>(emptyBilling);
   const [billMsg, setBillMsg] = useState<string | null>(null);
   const [billBusy, setBillBusy] = useState(false);
+  const [paymentNote, setPaymentNote] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/me", { credentials: "include" })
@@ -79,6 +80,35 @@ export default function AccountPage() {
         if (c && typeof c.balance === "number") setBalance(c.balance);
         if (rec?.records) setRecords(rec.records);
       });
+  }, []);
+
+  useEffect(() => {
+    const paymentId = new URLSearchParams(window.location.search).get("payment");
+    if (!paymentId) return;
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      const res = await fetch(`/api/v1/payments/${paymentId}`, { credentials: "include" });
+      const json = await res.json();
+      if (stop || json.error) return;
+      if (json.status === "paid") {
+        stop = true;
+        const credits = await fetch("/api/v1/credits", { credentials: "include" }).then((r) => r.json());
+        if (typeof credits.balance === "number") setBalance(credits.balance);
+        setPaymentNote(`Payment successful. ${json.credits} credits are on your account.`);
+        window.history.replaceState(null, "", "/account");
+        return;
+      }
+      if (json.status === "checkout_open") {
+        setPaymentNote("Payment successful. Updating your credit balance.");
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 2000);
+    return () => {
+      stop = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   if (!me) {
@@ -176,6 +206,7 @@ export default function AccountPage() {
         <p className="mt-2 text-muted">Confirm your email before buying credits or registering a file.</p>
       ) : null}
       <p className="mt-2">Credit balance: {balance ?? "…"}</p>
+      {paymentNote ? <p role="status">{paymentNote}</p> : null}
       {records.length ? (
         <ul className="record-list">
           {records.map((r) => (

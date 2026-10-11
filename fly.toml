@@ -35,3 +35,5 @@ primary_region = "lhr"
   AUTH_URL = "https://oyokometa.xyz"
   BANK_CURRENCY = "NGN"
   TSA_URL = "http://timestamp.digicert.com"
+  # Sandbox until Bachs approves live payments. Set this to "live" and redeploy to switch.
+  BACHS_MODE = "sandbox"

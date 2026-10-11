@@ -81,9 +81,14 @@ export default function PayPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!pay) return;
-    const waiting =
-      pay.status === "checkout_open" || pay.status === "awaiting_transfer" || pay.status === "awaiting_match";
+    if (!pay || pay.provider !== "bachs") return;
+    if (pay.status === "expired" || pay.status === "rejected" || pay.status === "reversed") return;
+    router.replace(`/account?payment=${pay.payment_id}`);
+  }, [pay, router]);
+
+  useEffect(() => {
+    if (!pay || pay.provider === "bachs") return;
+    const waiting = pay.status === "awaiting_transfer" || pay.status === "awaiting_match";
     if (!waiting) return;
     const timer = window.setInterval(() => {
       fetch(`/api/v1/payments/${id}`, { credentials: "include" })
@@ -121,48 +126,27 @@ export default function PayPage() {
   if (!pay) return <p className="page">Loading payment…</p>;
 
   if (pay.provider === "bachs") {
+    if (pay.status === "expired" || pay.status === "rejected" || pay.status === "reversed") {
+      return (
+        <div className="page page-narrow">
+          <h1 className="text-3xl mb-4">Online payment</h1>
+          <p role="status">
+            {pay.status === "expired"
+              ? "This checkout expired before payment. You can start again from the credits page."
+              : pay.status === "reversed"
+                ? "This payment was reversed, and the credits were removed."
+                : "Online payment could not be started. No credits were added."}
+          </p>
+          <p className="mt-6">
+            <a href="/account">Back to account</a>
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="page page-narrow">
-        <h1 className="text-3xl mb-4">Online payment</h1>
-        <p className="mb-4">
-          <strong>{pay.amount_label}</strong> for <strong>{pay.credits} credits</strong>.
-        </p>
-        {pay.status === "paid" ? (
-          <p className="mt-6" role="status">
-            Payment confirmed. Credits are on your account.
-          </p>
-        ) : pay.status === "expired" ? (
-          <p className="mt-6" role="status">
-            This checkout expired before payment. You can start again from the credits page.
-          </p>
-        ) : pay.status === "reversed" ? (
-          <p className="mt-6" role="status">
-            This payment was reversed, and the credits were removed.
-          </p>
-        ) : pay.status === "rejected" ? (
-          <p className="mt-6" role="status">
-            Online payment could not be started. No credits were added.
-          </p>
-        ) : (
-          <div className="mt-6" role="status">
-            <p>Credits are added after Bachs confirms the payment. You can leave this page.</p>
-            {pay.checkout_url ? (
-              <a className="btn mt-4" href={pay.checkout_url}>
-                Continue to checkout
-              </a>
-            ) : (
-              <p className="mt-4">Waiting for confirmation…</p>
-            )}
-          </div>
-        )}
-        <p className="mt-6">
-          <a href="/credits">Back to credits</a>
-        </p>
-        {err ? (
-          <p className="mt-4" role="alert">
-            {err}
-          </p>
-        ) : null}
+        <h1 className="text-3xl mb-4">Payment successful</h1>
+        <p role="status">Taking you to your account.</p>
       </div>
     );
   }

@@ -300,7 +300,7 @@ creditRoutes.post("/payments/bachs/checkouts", async (c) => {
   }
 
   const paymentId = randomUUID();
-  const realSuccess = `${origin}/credits/pay/${paymentId}`;
+  const realSuccess = `${origin}/account?payment=${paymentId}`;
   if (!isPublicReturnUrl(realSuccess)) {
     return c.json(
       apiError(ERROR_CODES.service_unavailable, "Online checkout needs a public site address", auth.requestId),
