@@ -16,19 +16,35 @@ const ts = {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 };
 
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
-  username: text("username").unique(),
-  passwordHash: text("password_hash"),
-  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-  displayName: text("display_name"),
-  status: text("status").notNull().default("active"),
-  role: text("role").notNull().default("user"),
-  googleId: text("google_id"),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-  ...ts,
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull().unique(),
+    username: text("username").unique(),
+    passwordHash: text("password_hash"),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    displayName: text("display_name"),
+    phone: text("phone"),
+    billingLine1: text("billing_line1"),
+    billingLine2: text("billing_line2"),
+    billingCity: text("billing_city"),
+    billingState: text("billing_state"),
+    billingPostalCode: text("billing_postal_code"),
+    billingCountry: text("billing_country"),
+    bachsCustomerId: text("bachs_customer_id"),
+    bachsSandboxCustomerId: text("bachs_sandbox_customer_id"),
+    status: text("status").notNull().default("active"),
+    role: text("role").notNull().default("user"),
+    googleId: text("google_id"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    ...ts,
+  },
+  (t) => [
+    uniqueIndex("users_bachs_customer_id_idx").on(t.bachsCustomerId),
+    uniqueIndex("users_bachs_sandbox_customer_id_idx").on(t.bachsSandboxCustomerId),
+  ],
+);
 
 export const anonymousSessions = pgTable("anonymous_sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -225,6 +241,7 @@ export const creditProducts = pgTable("credit_products", {
   priceMinor: integer("price_minor").notNull(),
   usdPriceMinor: integer("usd_price_minor"),
   bachsProductId: text("bachs_product_id"),
+  bachsSandboxProductId: text("bachs_sandbox_product_id"),
   active: boolean("active").notNull().default(true),
   ...ts,
 });

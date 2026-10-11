@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { fulfilBachsEvent } from "../bachs-fulfil.js";
-import { verifyBachsSignature } from "../bachs.js";
+import { bachsWebhookSecret, verifyBachsSignature } from "../bachs.js";
 
 export const bachsWebhookRoutes = new Hono();
 
 bachsWebhookRoutes.post("/webhooks/bachs", async (c) => {
-  const secret = process.env.BACHS_WEBHOOK_SECRET?.trim() ?? "";
+  const secret = bachsWebhookSecret();
   if (!secret) {
     console.error(JSON.stringify({ msg: "bachs_webhook_secret_missing" }));
     return c.json({ error: "unavailable" }, 500);

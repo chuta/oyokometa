@@ -2,8 +2,16 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   bachsApiBase,
+  bachsApiKey,
   bachsCheckout,
+  bachsCustomerCreateBody,
+  bachsCustomerId,
+  bachsCustomerIdFromList,
+  bachsIdempotencyKey,
+  bachsMode,
   bachsProductId,
+  bachsWebhookSecret,
+  checkoutCustomer,
   chargedAmountCoversPack,
   classifyBachsEvent,
   decimalToMinor,
@@ -25,6 +33,24 @@ describe("Bachs money and URLs", () => {
     expect(decimalToMinor("29.00")).toBe(2900);
     expect(decimalToMinor("29")).toBeNull();
     expect(decimalToMinor("29.0")).toBeNull();
+  });
+
+  it("uses the sandbox key only when BACHS_MODE is sandbox", () => {
+    const env = {
+      BACHS_API_KEY: "sk_live_keep",
+      BACHS_API_Test_KEY: "sk_sandbox_test",
+      BACHS_WEBHOOK_SECRET: "whsec_live",
+      BACHS_WEBHOOK_TEST_SECRET: "whsec_sandbox",
+    };
+    expect(bachsMode(env)).toBe("live");
+    expect(bachsApiKey(env)).toBe("sk_live_keep");
+    expect(bachsWebhookSecret(env)).toBe("whsec_live");
+    expect(bachsIdempotencyKey("product", "pack", env)).toBe("oyokometa-product:pack");
+    const sandbox = { ...env, BACHS_MODE: "sandbox" };
+    expect(bachsMode(sandbox)).toBe("sandbox");
+    expect(bachsApiKey(sandbox)).toBe("sk_sandbox_test");
+    expect(bachsWebhookSecret(sandbox)).toBe("whsec_sandbox");
+    expect(bachsIdempotencyKey("customer", "user", sandbox)).toBe("oyokometa-sandbox-customer:user");
   });
 
   it("selects the API host from the key prefix", () => {
@@ -202,5 +228,36 @@ describe("Bachs fulfilment decisions", () => {
     expect(bachsCheckout({ checkout_id: "chk_abc", checkout_url: "http://localhost/c" })).toBeNull();
     expect(bachsProductId({ product_id: "prod_abc" })).toBe("prod_abc");
     expect(bachsProductId({ id: "not-a-product" })).toBeNull();
+  });
+
+  it("attaches an existing customer, and otherwise sends name and phone with the email", () => {
+    expect(checkoutCustomer({ customerId: "cust_abc", email: "a@b.co", name: "Ada", phone: "+2348012345678" })).toEqual({
+      customer_id: "cust_abc",
+    });
+    expect(checkoutCustomer({ customerId: null, email: "a@b.co", name: null, phone: null })).toEqual({
+      email: "a@b.co",
+    });
+    expect(bachsCustomerId({ customer_id: "cust_abc" })).toBe("cust_abc");
+    expect(
+      bachsCustomerIdFromList(
+        { items: [{ customer_id: "cust_other", email: "other@b.co" }, { customer_id: "cust_abc", email: "A@b.co" }] },
+        "a@b.co",
+      ),
+    ).toBe("cust_abc");
+    expect(
+      bachsCustomerCreateBody({
+        userId: "user-1",
+        email: "a@b.co",
+        name: "Ada",
+        phone: null,
+        billing: null,
+      }),
+    ).toEqual({
+      email: "a@b.co",
+      name: "Ada",
+      phone_number: null,
+      metadata: { user_id: "user-1" },
+      billing_address: null,
+    });
   });
 });

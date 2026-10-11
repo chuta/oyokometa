@@ -11,10 +11,89 @@ import { publicAppOrigin } from "../origin.js";
 import { EmailDeliveryError, sendAccountDeletionLink } from "../email.js";
 import { audit } from "../audit.js";
 import { DELETION_CONFIRM_WORD, eraseAccount } from "../account-deletion.js";
+import { billingAddressFromUser, parseBillingProfile } from "../billing-profile.js";
+import { BachsRequestError, bachsApiKey, bachsMode } from "../bachs.js";
+import { syncBachsCustomer } from "../bachs-checkout.js";
 
 export const accountRoutes = new Hono();
 
 const PURPOSE = "account_deletion";
+
+accountRoutes.post("/account/profile", async (c) => {
+  const auth = c.get("auth");
+  if (!auth.user) {
+    return c.json(apiError(ERROR_CODES.unauthorized, "Sign in required", auth.requestId), 401);
+  }
+  if (!allowEndpoint(`acp:${auth.user.id}`, 30, 3_600_000)) {
+    return c.json(apiError(ERROR_CODES.rate_limited, "Too many requests", auth.requestId), 429);
+  }
+  const body = await c.req.json().catch(() => null);
+  const parsed = parseBillingProfile(body);
+  if (!parsed.ok) {
+    return c.json(apiError(ERROR_CODES.validation_error, parsed.message, auth.requestId), 400);
+  }
+  const db = getDb();
+  const billing = parsed.value.billing;
+  const [row] = await db
+    .update(users)
+    .set({
+      displayName: parsed.value.name,
+      phone: parsed.value.phone,
+      billingLine1: billing?.line1 ?? null,
+      billingLine2: billing?.line2 ?? null,
+      billingCity: billing?.city ?? null,
+      billingState: billing?.state ?? null,
+      billingPostalCode: billing?.postal_code ?? null,
+      billingCountry: billing?.country ?? null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(users.id, auth.user.id), isNull(users.deletedAt)))
+    .returning();
+  if (!row) {
+    return c.json(apiError(ERROR_CODES.unauthorized, "Sign in required", auth.requestId), 401);
+  }
+
+  let synced = false;
+  if (bachsApiKey()) {
+    const sandbox = bachsMode() === "sandbox";
+    const storedCustomerId = sandbox ? row.bachsSandboxCustomerId : row.bachsCustomerId;
+    try {
+      const customerId = await syncBachsCustomer({
+        userId: row.id,
+        email: row.email,
+        name: row.displayName,
+        phone: row.phone,
+        billing: billingAddressFromUser(row),
+        customerId: storedCustomerId,
+      });
+      if (customerId !== storedCustomerId) {
+        await db
+          .update(users)
+          .set(
+            sandbox
+              ? { bachsSandboxCustomerId: customerId, updatedAt: new Date() }
+              : { bachsCustomerId: customerId, updatedAt: new Date() },
+          )
+          .where(eq(users.id, row.id));
+      }
+      synced = true;
+    } catch (err) {
+      const code = err instanceof BachsRequestError ? err.code : null;
+      console.error(JSON.stringify({ msg: "bachs_customer_sync_failed", code }));
+    }
+  }
+
+  await audit(auth.user.id, "account.profile", auth.user.id);
+  return c.json({
+    ok: true,
+    synced,
+    user: {
+      name: row.displayName,
+      phone_number: row.phone,
+      billing_address: billingAddressFromUser(row),
+    },
+  });
+});
 
 accountRoutes.post("/account/delete/email-link", async (c) => {
   const auth = c.get("auth");

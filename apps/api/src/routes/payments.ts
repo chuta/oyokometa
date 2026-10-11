@@ -8,13 +8,15 @@ import {
   creditWallets,
   creditLedger,
   payments,
+  users,
   ensureWallet,
   actionPrices,
 } from "@oyokometa/db";
 import { randomUUID } from "node:crypto";
 import { bankDetails, formatAmount, generateTransferReference } from "../bank.js";
-import { BachsRequestError, isPublicReturnUrl } from "../bachs.js";
-import { createBachsCheckout, syncBachsProduct } from "../bachs-checkout.js";
+import { BachsRequestError, bachsApiKey, bachsMode, isPublicReturnUrl } from "../bachs.js";
+import { createBachsCheckout, syncBachsCustomer, syncBachsProduct } from "../bachs-checkout.js";
+import { billingAddressFromUser } from "../billing-profile.js";
 import { audit } from "../audit.js";
 import { sendAdminNotice, sendTransferInstructions } from "../email.js";
 import { publicAppOrigin } from "../origin.js";
@@ -216,7 +218,7 @@ creditRoutes.post("/payments/bachs/checkouts", async (c) => {
   if (!auth.user.emailVerified) {
     return c.json(apiError(ERROR_CODES.email_unverified, "Verify your email before buying credits", auth.requestId), 403);
   }
-  if (!process.env.BACHS_API_KEY?.trim()) {
+  if (!bachsApiKey()) {
     return c.json(apiError(ERROR_CODES.service_unavailable, "Online payment is not configured", auth.requestId), 503);
   }
   const origin = publicAppOrigin();
@@ -243,6 +245,35 @@ creditRoutes.post("/payments/bachs/checkouts", async (c) => {
   }
 
   const user = auth.user;
+  const sandbox = bachsMode() === "sandbox";
+  const [profile] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  const storedCustomerId = sandbox ? profile?.bachsSandboxCustomerId : profile?.bachsCustomerId;
+  let customerId = storedCustomerId ?? null;
+  if (profile) {
+    try {
+      customerId = await syncBachsCustomer({
+        userId: profile.id,
+        email: profile.email,
+        name: profile.displayName,
+        phone: profile.phone,
+        billing: billingAddressFromUser(profile),
+        customerId: storedCustomerId ?? null,
+      });
+      if (customerId !== storedCustomerId) {
+        await db
+          .update(users)
+          .set(
+            sandbox
+              ? { bachsSandboxCustomerId: customerId, updatedAt: new Date() }
+              : { bachsCustomerId: customerId, updatedAt: new Date() },
+          )
+          .where(eq(users.id, profile.id));
+      }
+    } catch (err) {
+      const code = err instanceof BachsRequestError ? err.code : null;
+      console.error(JSON.stringify({ msg: "bachs_customer_sync_failed", code }));
+    }
+  }
   const [existing] = await db
     .select()
     .from(payments)
@@ -295,7 +326,7 @@ creditRoutes.post("/payments/bachs/checkouts", async (c) => {
   }
 
   try {
-    let bachsProduct = product.bachsProductId;
+    let bachsProduct = sandbox ? product.bachsSandboxProductId : product.bachsProductId;
     if (!bachsProduct) {
       bachsProduct = await syncBachsProduct({
         id: product.id,
@@ -308,7 +339,11 @@ creditRoutes.post("/payments/bachs/checkouts", async (c) => {
       });
       await db
         .update(creditProducts)
-        .set({ bachsProductId: bachsProduct, updatedAt: new Date() })
+        .set(
+          sandbox
+            ? { bachsSandboxProductId: bachsProduct, updatedAt: new Date() }
+            : { bachsProductId: bachsProduct, updatedAt: new Date() },
+        )
         .where(eq(creditProducts.id, product.id));
     } else {
       await syncBachsProduct({
@@ -326,6 +361,9 @@ creditRoutes.post("/payments/bachs/checkouts", async (c) => {
       bachsProductId: bachsProduct,
       productId: product.id,
       email: user.email,
+      name: profile?.displayName ?? null,
+      phone: profile?.phone ?? null,
+      customerId,
       credits: product.credits,
       successUrl: realSuccess,
       cancelUrl,

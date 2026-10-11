@@ -1,9 +1,17 @@
+import { createHash } from "node:crypto";
 import {
   BachsRequestError,
   bachsCheckout,
+  bachsCustomerCreateBody,
+  bachsCustomerId,
+  bachsCustomerIdFromList,
+  bachsCustomerPatchBody,
+  bachsIdempotencyKey,
   bachsProductId,
   bachsRequest,
+  checkoutCustomer,
   minorToDecimal,
+  type BachsCustomerFields,
 } from "./bachs.js";
 
 type Pack = {
@@ -32,11 +40,40 @@ export async function syncBachsProduct(product: Pack): Promise<string> {
   const created = await bachsRequest("/v1/products", {
     method: "POST",
     body,
-    idempotencyKey: `oyokometa-product:${product.id}`,
+    idempotencyKey: bachsIdempotencyKey("product", product.id),
   });
   const id = bachsProductId(created);
   if (!id) throw new BachsRequestError(200, "missing_product_id");
   return id;
+}
+
+export async function syncBachsCustomer(input: BachsCustomerFields & { customerId: string | null }): Promise<string> {
+  const patch = bachsCustomerPatchBody(input);
+  const idempotencyKey = `oyokometa-customer:${createHash("sha256").update(JSON.stringify(patch)).digest("hex")}`;
+  if (input.customerId) {
+    try {
+      await bachsRequest(`/v1/customers/${input.customerId}`, { method: "PATCH", body: patch, idempotencyKey });
+      return input.customerId;
+    } catch (err) {
+      if (!(err instanceof BachsRequestError) || err.status !== 404) throw err;
+    }
+  }
+  let customerId: string | null = null;
+  try {
+    const created = await bachsRequest("/v1/customers", {
+      method: "POST",
+      body: bachsCustomerCreateBody(input),
+      idempotencyKey: bachsIdempotencyKey("customer", input.userId),
+    });
+    customerId = bachsCustomerId(created);
+  } catch (err) {
+    if (!(err instanceof BachsRequestError) || err.status !== 409) throw err;
+    const listed = await bachsRequest(`/v1/customers?search=${encodeURIComponent(input.email)}`, { method: "GET" });
+    customerId = bachsCustomerIdFromList(listed, input.email);
+  }
+  if (!customerId) throw new BachsRequestError(200, "missing_customer_id");
+  await bachsRequest(`/v1/customers/${customerId}`, { method: "PATCH", body: patch, idempotencyKey });
+  return customerId;
 }
 
 export async function createBachsCheckout(input: {
@@ -44,6 +81,9 @@ export async function createBachsCheckout(input: {
   bachsProductId: string;
   productId: string;
   email: string;
+  name: string | null;
+  phone: string | null;
+  customerId: string | null;
   credits: number;
   successUrl: string;
   cancelUrl: string;
@@ -53,7 +93,7 @@ export async function createBachsCheckout(input: {
     idempotencyKey: input.paymentId,
     body: {
       product_cart: [{ product_id: input.bachsProductId, quantity: 1 }],
-      customer: { email: input.email },
+      customer: checkoutCustomer(input),
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       reference: input.paymentId,

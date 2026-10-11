@@ -25,6 +25,7 @@ import {
 } from "../email.js";
 import { publicAppOrigin } from "../origin.js";
 import { audit } from "../audit.js";
+import { billingAddressFromUser } from "../billing-profile.js";
 import { allowEndpoint } from "../rate-limit.js";
 import {
   hashPassword,
@@ -41,8 +42,17 @@ export const authRoutes = new Hono();
 
 authRoutes.get("/me", async (c) => {
   const auth = c.get("auth");
+  if (!auth.user) {
+    return c.json({ user: null, anonymous_session_id: auth.anon?.id ?? null });
+  }
+  const [row] = await getDb().select().from(users).where(eq(users.id, auth.user.id)).limit(1);
   return c.json({
-    user: auth.user,
+    user: {
+      ...auth.user,
+      name: row?.displayName ?? null,
+      phone_number: row?.phone ?? null,
+      billing_address: row ? billingAddressFromUser(row) : null,
+    },
     anonymous_session_id: auth.anon?.id ?? null,
   });
 });

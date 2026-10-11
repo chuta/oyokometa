@@ -2,6 +2,39 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export type BachsMode = "sandbox" | "live";
+
+type Env = Record<string, string | undefined>;
+
+/** Sandbox until BACHS_MODE=live. Unset stays live so the deployed API keeps its live key. */
+export function bachsMode(env: Env = process.env): BachsMode {
+  const mode = env.BACHS_MODE?.trim().toLowerCase();
+  if (mode === "sandbox" || mode === "test") return "sandbox";
+  return "live";
+}
+
+export function bachsApiKey(env: Env = process.env): string | null {
+  if (bachsMode(env) === "sandbox") {
+    const test = env.BACHS_API_Test_KEY?.trim() || env.BACHS_API_TEST_KEY?.trim();
+    if (test) return test;
+    const key = env.BACHS_API_KEY?.trim();
+    return key?.startsWith("sk_sandbox_") ? key : null;
+  }
+  return env.BACHS_API_KEY?.trim() || null;
+}
+
+export function bachsWebhookSecret(env: Env = process.env): string {
+  if (bachsMode(env) === "sandbox") {
+    return env.BACHS_WEBHOOK_TEST_SECRET?.trim() || env.BACHS_WEBHOOK_Test_SECRET?.trim() || "";
+  }
+  return env.BACHS_WEBHOOK_SECRET?.trim() || "";
+}
+
+export function bachsIdempotencyKey(kind: "product" | "customer", id: string, env: Env = process.env): string {
+  const prefix = bachsMode(env) === "sandbox" ? "oyokometa-sandbox" : "oyokometa";
+  return `${prefix}-${kind}:${id}`;
+}
+
 export function bachsApiBase(apiKey: string): string {
   if (apiKey.startsWith("sk_sandbox_")) return "https://sandbox-api.bachs.io";
   if (apiKey.startsWith("sk_live_")) return "https://api.bachs.io";
@@ -188,7 +221,7 @@ export class BachsRequestError extends Error {
 }
 
 export async function bachsRequest(path: string, init: { method: string; body?: unknown; idempotencyKey?: string }) {
-  const key = process.env.BACHS_API_KEY?.trim();
+  const key = bachsApiKey();
   if (!key) throw new BachsRequestError(0, "missing_api_key");
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
@@ -218,6 +251,70 @@ export async function bachsRequest(path: string, init: { method: string; body?: 
     throw new BachsRequestError(res.status, code);
   }
   return parsed;
+}
+
+export function bachsCustomerId(body: unknown): string | null {
+  if (!body || typeof body !== "object") return null;
+  const value = (body as Record<string, unknown>).customer_id;
+  if (typeof value === "string" && value.startsWith("cust_")) return value;
+  return null;
+}
+
+export function bachsCustomerIdFromList(body: unknown, email: string): string | null {
+  if (!body || typeof body !== "object") return null;
+  const items = (body as { items?: unknown }).items;
+  if (!Array.isArray(items)) return null;
+  const want = email.trim().toLowerCase();
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const id = bachsCustomerId(row);
+    const rowEmail = typeof row.email === "string" ? row.email.trim().toLowerCase() : "";
+    if (id && rowEmail === want) return id;
+  }
+  return null;
+}
+
+export type BachsCustomerFields = {
+  userId: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  billing: {
+    line1: string;
+    line2: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+    country: string;
+  } | null;
+};
+
+/** Full customer write. Metadata is ours: the Oyokometa user id, not a field the buyer types. */
+export function bachsCustomerCreateBody(input: BachsCustomerFields) {
+  return { email: input.email, ...bachsCustomerPatchBody(input) };
+}
+
+export function bachsCustomerPatchBody(input: BachsCustomerFields) {
+  return {
+    name: input.name,
+    phone_number: input.phone,
+    metadata: { user_id: input.userId },
+    billing_address: input.billing,
+  };
+}
+
+export function checkoutCustomer(input: {
+  customerId: string | null;
+  email: string;
+  name: string | null;
+  phone: string | null;
+}) {
+  if (input.customerId) return { customer_id: input.customerId };
+  const customer: { email: string; name?: string; phone_number?: string } = { email: input.email };
+  if (input.name) customer.name = input.name;
+  if (input.phone) customer.phone_number = input.phone;
+  return customer;
 }
 
 export function bachsProductId(body: unknown): string | null {
