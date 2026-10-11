@@ -7,6 +7,7 @@ type Product = {
   name: string;
   credits: number;
   price_label: string;
+  usd_price_label: string | null;
 };
 
 export default function PricingPage() {
@@ -44,15 +45,15 @@ export default function PricingPage() {
         {products.map((p) => (
           <li key={p.id} className="pack">
             <strong>{p.name}</strong>
-            <p className="mt-2 mb-0">
-              {p.credits} credits — {p.price_label}
-            </p>
+            <p className="mt-2 mb-0">{p.credits} credits</p>
+            <p className="text-muted mt-2 mb-0">{p.price_label} by bank transfer</p>
+            {p.usd_price_label ? <p className="text-muted mt-1 mb-0">{p.usd_price_label} online</p> : null}
           </li>
         ))}
       </ul>
       <p className="mt-8 text-muted">
-        Pay by bank transfer using a unique narration code. <a href="/credits">Buy credits</a>.{" "}
-        <a href="/credits/terms">Credit terms</a>.
+        Bank transfer uses the naira price and a unique narration code. Online payment uses the US dollar
+        price. <a href="/credits">Buy credits</a>. <a href="/credits/terms">Credit terms</a>.
       </p>
     </article>
   );
