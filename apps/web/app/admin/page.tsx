@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 function PaymentLine({ p }: { p: Record<string, unknown> }) {
   return (
     <>
-      <span className="mono">{String(p.referenceCode)}</span> · {String(p.status)} ·{" "}
+      <span className="mono">{String(p.referenceCode)}</span> · {String(p.provider ?? "bank_transfer")} ·{" "}
+      {String(p.status)} ·{" "}
       {(Number(p.amountMinor) / 100).toLocaleString()} {String(p.currency)} · {String(p.packName ?? "")}{" "}
       ({String(p.packCredits ?? "")} credits) · {String(p.userEmail ?? "")}
     </>
@@ -143,7 +144,10 @@ export default function AdminPage() {
       </p>
       <ul className="space-y-2 text-sm mb-8">
         {payments
-          .filter((p) => p.status === "awaiting_match" || p.status === "awaiting_transfer")
+          .filter(
+            (p) =>
+              (p.status === "awaiting_match" || p.status === "awaiting_transfer") && p.provider !== "bachs",
+          )
           .map((p) => (
             <li key={String(p.id)} className="border border-line p-3">
               <p>

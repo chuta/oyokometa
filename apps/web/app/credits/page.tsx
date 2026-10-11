@@ -8,6 +8,7 @@ type Product = {
   name: string;
   credits: number;
   price_label: string;
+  usd_price_label: string | null;
 };
 
 function waitClock(ms: number) {
@@ -22,6 +23,7 @@ export default function CreditsPage() {
   const [balance, setBalance] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [retryUntil, setRetryUntil] = useState<number | null>(null);
   const [openPaymentId, setOpenPaymentId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -58,7 +60,8 @@ export default function CreditsPage() {
   const remainingMs = retryUntil ? Math.max(0, retryUntil - now) : 0;
 
   const buy = async (product_id: string) => {
-    if (remainingMs > 0) return;
+    if (remainingMs > 0 || busyId) return;
+    setBusyId(product_id);
     setErr(null);
     const res = await fetch("/api/v1/payments/intents", {
       method: "POST",
@@ -67,6 +70,7 @@ export default function CreditsPage() {
       body: JSON.stringify({ product_id }),
     });
     const json = await res.json();
+    setBusyId(null);
     if (!res.ok) {
       if (typeof json.retry_after_seconds === "number" && json.retry_after_seconds > 0) {
         setRetryUntil(Date.now() + json.retry_after_seconds * 1000);
@@ -78,6 +82,25 @@ export default function CreditsPage() {
       return;
     }
     router.push(`/credits/pay/${json.payment_id}`);
+  };
+
+  const payOnline = async (product_id: string) => {
+    if (busyId) return;
+    setBusyId(product_id);
+    setErr(null);
+    const res = await fetch("/api/v1/payments/bachs/checkouts", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id }),
+    });
+    const json = await res.json();
+    if (!res.ok || typeof json.checkout_url !== "string") {
+      setBusyId(null);
+      setErr(json.error?.message ?? "Could not start online payment");
+      return;
+    }
+    window.location.assign(json.checkout_url);
   };
 
   return (
@@ -93,7 +116,8 @@ export default function CreditsPage() {
       )}
       <p className="text-muted text-sm mb-6">
         Pay by bank transfer with the reference we give you. Credits are added once we match the
-        deposit, usually within one business day.
+        deposit, usually within one business day. Pay online to use a card or a local payment method.
+        Those credits are added when the payment is confirmed.
       </p>
       {remainingMs > 0 ? (
         <p className="mb-6" role="status">
@@ -111,11 +135,24 @@ export default function CreditsPage() {
           <li key={p.id} className="pack">
             <p>
               <strong>{p.name}</strong> — {p.credits} credits — {p.price_label}
+              {p.usd_price_label ? ` · ${p.usd_price_label} online` : ""}
             </p>
             {signedIn ? (
-              <button className="btn mt-3" type="button" onClick={() => buy(p.id)} disabled={remainingMs > 0}>
-                Pay by bank transfer
-              </button>
+              <div className="pack-actions">
+                <button className="btn" type="button" onClick={() => buy(p.id)} disabled={remainingMs > 0 || busyId !== null}>
+                  Pay by bank transfer
+                </button>
+                {p.usd_price_label ? (
+                  <button
+                    className="btn-secondary btn"
+                    type="button"
+                    onClick={() => payOnline(p.id)}
+                    disabled={busyId !== null}
+                  >
+                    Pay online · {p.usd_price_label}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </li>
         ))}

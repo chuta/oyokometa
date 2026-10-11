@@ -223,6 +223,8 @@ export const creditProducts = pgTable("credit_products", {
   credits: integer("credits").notNull(),
   currency: text("currency").notNull(),
   priceMinor: integer("price_minor").notNull(),
+  usdPriceMinor: integer("usd_price_minor"),
+  bachsProductId: text("bachs_product_id"),
   active: boolean("active").notNull().default(true),
   ...ts,
 });
@@ -250,9 +252,14 @@ export const payments = pgTable(
     referenceCode: text("reference_code"),
     claimedAt: timestamp("claimed_at", { withTimezone: true }),
     creditsGranted: integer("credits_granted").notNull().default(0),
+    checkoutUrl: text("checkout_url"),
+    chargeId: text("charge_id"),
     ...ts,
   },
-  (t) => [uniqueIndex("payments_reference_code_idx").on(t.referenceCode)],
+  (t) => [
+    uniqueIndex("payments_reference_code_idx").on(t.referenceCode),
+    uniqueIndex("payments_charge_id_idx").on(t.chargeId),
+  ],
 );
 
 export const paymentEvents = pgTable(

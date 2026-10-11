@@ -30,3 +30,25 @@ describe("bank transfer payment states", () => {
     expect(nextPaymentStatus("awaiting_match", "admin_reverse")).toBeNull();
   });
 });
+
+describe("bachs payment states", () => {
+  it("grants from an open or expired checkout and not twice", () => {
+    expect(nextPaymentStatus("checkout_open", "bachs_paid")).toBe("paid");
+    expect(nextPaymentStatus("expired", "bachs_paid")).toBe("paid");
+    expect(nextPaymentStatus("paid", "bachs_paid")).toBeNull();
+    expect(grantsCredits("bachs_paid")).toBe(true);
+    expect(grantsCredits("user_claim")).toBe(false);
+  });
+
+  it("expires only an open checkout, and a later payment can still be granted", () => {
+    expect(nextPaymentStatus("checkout_open", "bachs_expire")).toBe("expired");
+    expect(nextPaymentStatus("paid", "bachs_expire")).toBeNull();
+    expect(nextPaymentStatus("expired", "bachs_paid")).toBe("paid");
+  });
+
+  it("reverses only a paid Bachs payment", () => {
+    expect(nextPaymentStatus("paid", "bachs_reverse")).toBe("reversed");
+    expect(nextPaymentStatus("checkout_open", "bachs_reverse")).toBeNull();
+    expect(nextPaymentStatus("checkout_open", "admin_confirm")).toBeNull();
+  });
+});

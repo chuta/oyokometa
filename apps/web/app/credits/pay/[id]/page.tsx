@@ -42,16 +42,18 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 
 type Pay = {
   payment_id: string;
+  provider?: string;
   status: string;
   reference: string;
   credits: number;
   amount_label: string;
+  checkout_url?: string | null;
   bank: {
     bank_name: string;
     account_name: string;
     account_number: string;
     currency: string;
-  };
+  } | null;
 };
 
 export default function PayPage() {
@@ -62,13 +64,36 @@ export default function PayPage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`/api/v1/payments/${id}`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.error) setErr(j.error.message);
-        else setPay(j);
-      });
+    let stop = false;
+    const load = () => {
+      fetch(`/api/v1/payments/${id}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((j) => {
+          if (stop) return;
+          if (j.error) setErr(j.error.message);
+          else setPay(j);
+        });
+    };
+    load();
+    return () => {
+      stop = true;
+    };
   }, [id]);
+
+  useEffect(() => {
+    if (!pay) return;
+    const waiting =
+      pay.status === "checkout_open" || pay.status === "awaiting_transfer" || pay.status === "awaiting_match";
+    if (!waiting) return;
+    const timer = window.setInterval(() => {
+      fetch(`/api/v1/payments/${id}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((j) => {
+          if (!j.error) setPay(j);
+        });
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [id, pay?.status]);
 
   const confirm = async () => {
     setBusy(true);
@@ -95,6 +120,55 @@ export default function PayPage() {
   }
   if (!pay) return <p className="page">Loading payment…</p>;
 
+  if (pay.provider === "bachs") {
+    return (
+      <div className="page page-narrow">
+        <h1 className="text-3xl mb-4">Online payment</h1>
+        <p className="mb-4">
+          <strong>{pay.amount_label}</strong> for <strong>{pay.credits} credits</strong>.
+        </p>
+        {pay.status === "paid" ? (
+          <p className="mt-6" role="status">
+            Payment confirmed. Credits are on your account.
+          </p>
+        ) : pay.status === "expired" ? (
+          <p className="mt-6" role="status">
+            This checkout expired before payment. You can start again from the credits page.
+          </p>
+        ) : pay.status === "reversed" ? (
+          <p className="mt-6" role="status">
+            This payment was reversed, and the credits were removed.
+          </p>
+        ) : pay.status === "rejected" ? (
+          <p className="mt-6" role="status">
+            Online payment could not be started. No credits were added.
+          </p>
+        ) : (
+          <div className="mt-6" role="status">
+            <p>Credits are added after Bachs confirms the payment. You can leave this page.</p>
+            {pay.checkout_url ? (
+              <a className="btn mt-4" href={pay.checkout_url}>
+                Continue to checkout
+              </a>
+            ) : (
+              <p className="mt-4">Waiting for confirmation…</p>
+            )}
+          </div>
+        )}
+        <p className="mt-6">
+          <a href="/credits">Back to credits</a>
+        </p>
+        {err ? (
+          <p className="mt-4" role="alert">
+            {err}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  const bank = pay.bank;
+
   return (
     <div className="page page-narrow">
       <h1 className="text-3xl mb-4">Bank transfer</h1>
@@ -112,22 +186,22 @@ export default function PayPage() {
       <dl className="space-y-2">
         <div>
           <dt className="text-muted text-sm">Bank</dt>
-          <dd>{pay.bank.bank_name || "Set BANK_NAME in environment"}</dd>
+          <dd>{bank?.bank_name || "Set BANK_NAME in environment"}</dd>
         </div>
         <div className="copy-field">
           <div>
             <dt className="text-muted text-sm">Account name</dt>
-            <dd>{pay.bank.account_name || "Set BANK_ACCOUNT_NAME"}</dd>
+            <dd>{bank?.account_name || "Set BANK_ACCOUNT_NAME"}</dd>
           </div>
-          {pay.bank.account_name ? <CopyButton value={pay.bank.account_name} label="account name" /> : null}
+          {bank?.account_name ? <CopyButton value={bank.account_name} label="account name" /> : null}
         </div>
         <div className="copy-field">
           <div>
             <dt className="text-muted text-sm">Account number</dt>
-            <dd className="mono">{pay.bank.account_number || "Set BANK_ACCOUNT_NUMBER"}</dd>
+            <dd className="mono">{bank?.account_number || "Set BANK_ACCOUNT_NUMBER"}</dd>
           </div>
-          {pay.bank.account_number ? (
-            <CopyButton value={pay.bank.account_number} label="account number" />
+          {bank?.account_number ? (
+            <CopyButton value={bank.account_number} label="account number" />
           ) : null}
         </div>
       </dl>
@@ -152,7 +226,7 @@ export default function PayPage() {
       ) : (
         <>
           <p className="text-muted text-sm mt-6">
-            Credits are added after we match your deposit, usually within one business day.
+            Credits are added after we match your deposit, usually within a few minutes.
           </p>
           <button className="btn mt-4" type="button" onClick={confirm} disabled={busy}>
             <BusyLabel busy={busy} idle="I have sent the transfer" working="Saving…" />

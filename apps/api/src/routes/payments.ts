@@ -11,7 +11,10 @@ import {
   ensureWallet,
   actionPrices,
 } from "@oyokometa/db";
+import { randomUUID } from "node:crypto";
 import { bankDetails, formatAmount, generateTransferReference } from "../bank.js";
+import { BachsRequestError, isPublicReturnUrl } from "../bachs.js";
+import { createBachsCheckout, syncBachsProduct } from "../bachs-checkout.js";
 import { audit } from "../audit.js";
 import { sendAdminNotice, sendTransferInstructions } from "../email.js";
 import { publicAppOrigin } from "../origin.js";
@@ -43,6 +46,7 @@ creditRoutes.get("/credits/products", async (c) => {
       currency: p.currency,
       price_minor: p.priceMinor,
       price_label: formatAmount(p.priceMinor, p.currency),
+      usd_price_label: p.usdPriceMinor != null ? formatAmount(p.usdPriceMinor, "USD") : null,
     })),
   });
 });
@@ -57,7 +61,7 @@ creditRoutes.get("/credits", async (c) => {
   const [latest] = await db
     .select()
     .from(payments)
-    .where(eq(payments.userId, auth.user.id))
+    .where(and(eq(payments.userId, auth.user.id), eq(payments.provider, "bank_transfer")))
     .orderBy(desc(payments.createdAt))
     .limit(1);
   const remainingMs = transferCooldownRemaining(latest?.createdAt ?? null, new Date());
@@ -123,7 +127,7 @@ creditRoutes.post("/payments/intents", async (c) => {
     const [latest] = await tx
       .select()
       .from(payments)
-      .where(eq(payments.userId, user.id))
+      .where(and(eq(payments.userId, user.id), eq(payments.provider, "bank_transfer")))
       .orderBy(desc(payments.createdAt))
       .limit(1);
     const remainingMs = transferCooldownRemaining(latest?.createdAt ?? null, new Date());
@@ -204,6 +208,150 @@ creditRoutes.post("/payments/intents", async (c) => {
   });
 });
 
+creditRoutes.post("/payments/bachs/checkouts", async (c) => {
+  const auth = c.get("auth");
+  if (!auth.user) {
+    return c.json(apiError(ERROR_CODES.unauthorized, "Sign in required", auth.requestId), 401);
+  }
+  if (!auth.user.emailVerified) {
+    return c.json(apiError(ERROR_CODES.email_unverified, "Verify your email before buying credits", auth.requestId), 403);
+  }
+  if (!process.env.BACHS_API_KEY?.trim()) {
+    return c.json(apiError(ERROR_CODES.service_unavailable, "Online payment is not configured", auth.requestId), 503);
+  }
+  const origin = publicAppOrigin();
+  const body = await c.req.json<{ product_id?: string }>().catch(() => ({}) as { product_id?: string });
+  const db = getDb();
+  const [product] = await db
+    .select()
+    .from(creditProducts)
+    .where(eq(creditProducts.id, body.product_id ?? ""))
+    .limit(1);
+  if (!product || !product.active) {
+    return c.json(apiError(ERROR_CODES.validation_error, "Unknown pack", auth.requestId), 400);
+  }
+  if (product.usdPriceMinor == null || product.usdPriceMinor <= 0) {
+    return c.json(apiError(ERROR_CODES.validation_error, "This pack is not available for online payment yet", auth.requestId), 400);
+  }
+  const successUrl = `${origin}/credits/pay/pending`;
+  const cancelUrl = `${origin}/credits`;
+  if (!isPublicReturnUrl(successUrl) || !isPublicReturnUrl(cancelUrl)) {
+    return c.json(
+      apiError(ERROR_CODES.service_unavailable, "Online checkout needs a public site address", auth.requestId),
+      503,
+    );
+  }
+
+  const user = auth.user;
+  const [existing] = await db
+    .select()
+    .from(payments)
+    .where(
+      and(
+        eq(payments.userId, user.id),
+        eq(payments.productId, product.id),
+        eq(payments.provider, "bachs"),
+        eq(payments.status, "checkout_open"),
+      ),
+    )
+    .orderBy(desc(payments.createdAt))
+    .limit(1);
+  const reusable =
+    existing?.checkoutUrl &&
+    existing.createdAt.getTime() > Date.now() - 50 * 60 * 1000;
+  if (existing && reusable) {
+    return c.json({
+      payment_id: existing.id,
+      checkout_url: existing.checkoutUrl,
+      credits: product.credits,
+      amount_label: formatAmount(existing.amountMinor, existing.currency),
+    });
+  }
+
+  const paymentId = randomUUID();
+  const realSuccess = `${origin}/credits/pay/${paymentId}`;
+  if (!isPublicReturnUrl(realSuccess)) {
+    return c.json(
+      apiError(ERROR_CODES.service_unavailable, "Online checkout needs a public site address", auth.requestId),
+      503,
+    );
+  }
+  const [payment] = await db
+    .insert(payments)
+    .values({
+      id: paymentId,
+      userId: user.id,
+      provider: "bachs",
+      productId: product.id,
+      amountMinor: product.usdPriceMinor,
+      currency: "USD",
+      status: "checkout_open",
+      referenceCode: paymentId,
+      creditsGranted: 0,
+    })
+    .returning();
+  if (!payment) {
+    return c.json(apiError(ERROR_CODES.service_unavailable, "Could not create payment", auth.requestId), 503);
+  }
+
+  try {
+    let bachsProduct = product.bachsProductId;
+    if (!bachsProduct) {
+      bachsProduct = await syncBachsProduct({
+        id: product.id,
+        name: product.name,
+        credits: product.credits,
+        currency: product.currency,
+        priceMinor: product.priceMinor,
+        usdPriceMinor: product.usdPriceMinor,
+        bachsProductId: null,
+      });
+      await db
+        .update(creditProducts)
+        .set({ bachsProductId: bachsProduct, updatedAt: new Date() })
+        .where(eq(creditProducts.id, product.id));
+    } else {
+      await syncBachsProduct({
+        id: product.id,
+        name: product.name,
+        credits: product.credits,
+        currency: product.currency,
+        priceMinor: product.priceMinor,
+        usdPriceMinor: product.usdPriceMinor,
+        bachsProductId: bachsProduct,
+      });
+    }
+    const checkout = await createBachsCheckout({
+      paymentId: payment.id,
+      bachsProductId: bachsProduct,
+      productId: product.id,
+      email: user.email,
+      credits: product.credits,
+      successUrl: realSuccess,
+      cancelUrl,
+    });
+    await db
+      .update(payments)
+      .set({ providerRef: checkout.checkoutId, checkoutUrl: checkout.checkoutUrl, updatedAt: new Date() })
+      .where(eq(payments.id, payment.id));
+    await audit(user.id, "payment.bachs.checkout", payment.id, undefined, { product: product.name });
+    return c.json({
+      payment_id: payment.id,
+      checkout_url: checkout.checkoutUrl,
+      credits: product.credits,
+      amount_label: formatAmount(product.usdPriceMinor, "USD"),
+    });
+  } catch (err) {
+    await db
+      .update(payments)
+      .set({ status: "rejected", updatedAt: new Date() })
+      .where(and(eq(payments.id, payment.id), eq(payments.status, "checkout_open")));
+    const code = err instanceof BachsRequestError ? err.code : null;
+    console.error(JSON.stringify({ msg: "bachs_checkout_failed", code, message: (err as Error).message }));
+    return c.json(apiError(ERROR_CODES.service_unavailable, "Could not start online payment", auth.requestId), 503);
+  }
+});
+
 creditRoutes.get("/payments/:id", async (c) => {
   const auth = c.get("auth");
   if (!auth.user) {
@@ -220,11 +368,13 @@ creditRoutes.get("/payments/:id", async (c) => {
     : [];
   return c.json({
     payment_id: payment.id,
+    provider: payment.provider,
     status: payment.status,
     reference: payment.referenceCode,
     credits: product?.credits ?? payment.creditsGranted,
     amount_label: formatAmount(payment.amountMinor, payment.currency),
-    bank,
+    checkout_url: payment.provider === "bachs" && payment.status === "checkout_open" ? payment.checkoutUrl : null,
+    bank: payment.provider === "bank_transfer" ? bank : null,
   });
 });
 

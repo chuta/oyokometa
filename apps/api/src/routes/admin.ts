@@ -46,6 +46,7 @@ adminRoutes.get("/admin/payments", async (c) => {
       id: payments.id,
       referenceCode: payments.referenceCode,
       status: payments.status,
+      provider: payments.provider,
       amountMinor: payments.amountMinor,
       currency: payments.currency,
       creditsGranted: payments.creditsGranted,
@@ -80,6 +81,9 @@ adminRoutes.post("/admin/payments/:id/confirm", async (c) => {
   const db = getDb();
   const [payment] = await db.select().from(payments).where(eq(payments.id, c.req.param("id"))).limit(1);
   if (!payment) return notFound(c);
+  if (payment.provider === "bachs") {
+    return c.json(apiError(ERROR_CODES.conflict, "Bachs payments are confirmed by webhook", auth.requestId), 409);
+  }
   const next = nextPaymentStatus(payment.status, "admin_confirm");
   if (!next) {
     return c.json(apiError(ERROR_CODES.conflict, `Payment is ${payment.status}`, auth.requestId), 409);

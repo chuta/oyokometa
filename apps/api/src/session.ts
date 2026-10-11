@@ -30,6 +30,12 @@ export async function sessionMiddleware(c: Context, next: Next) {
   const requestId = randomToken(8);
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "127.0.0.1";
   const ipHash = hashIp(ip);
+  if (c.req.path === "/api/v1/webhooks/bachs") {
+    c.set("auth", { requestId, ip, ipHash, anon: null, user: null });
+    c.header("x-request-id", requestId);
+    await next();
+    return;
+  }
   const db = getDb();
 
   let user: AuthCtx["user"] = null;
