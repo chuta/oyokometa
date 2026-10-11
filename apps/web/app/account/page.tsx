@@ -198,213 +198,237 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="page">
-      <h1 className="text-3xl mb-4">Account</h1>
-      <p>{me.user.username ? `@${me.user.username}` : null}</p>
-      <p>{me.user.email}</p>
-      {me.user.emailVerified === false ? (
-        <p className="mt-2 text-muted">Confirm your email before buying credits or registering a file.</p>
-      ) : null}
-      <p className="mt-2">Credit balance: {balance ?? "…"}</p>
-      {paymentNote ? <p role="status">{paymentNote}</p> : null}
-      {records.length ? (
-        <ul className="record-list">
-          {records.map((r) => (
-            <li key={r.public_id}>
-              <a href={`/verify/${r.public_id}`}>{r.public_id}</a> · {r.status} ·{" "}
-              {String(r.created_at).slice(0, 10)}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      <form onSubmit={saveBilling} className="mt-10 max-w-md space-y-3">
-        <h2 className="text-xl">Billing details</h2>
-        <p className="text-sm text-muted">
-          Name, phone and billing address are sent with online payments. Email stays the address on this account.
-        </p>
-        <p>{me.user.email}</p>
-        <label className="block">
-          Name
-          <input
-            className="block w-full mt-1"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            maxLength={511}
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          Phone
-          <input
-            className="block w-full mt-1"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            autoComplete="tel"
-            inputMode="tel"
-            placeholder="+2348012345678"
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          Street address
-          <input
-            className="block w-full mt-1"
-            value={billing.line1}
-            onChange={(e) => setAddress("line1", e.target.value)}
-            autoComplete="address-line1"
-            maxLength={255}
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          Address line 2
-          <input
-            className="block w-full mt-1"
-            value={billing.line2}
-            onChange={(e) => setAddress("line2", e.target.value)}
-            autoComplete="address-line2"
-            maxLength={255}
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          City
-          <input
-            className="block w-full mt-1"
-            value={billing.city}
-            onChange={(e) => setAddress("city", e.target.value)}
-            autoComplete="address-level2"
-            maxLength={128}
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          State
-          <input
-            className="block w-full mt-1"
-            value={billing.state}
-            onChange={(e) => setAddress("state", e.target.value)}
-            autoComplete="address-level1"
-            maxLength={128}
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          Postal code
-          <input
-            className="block w-full mt-1"
-            value={billing.postal_code}
-            onChange={(e) => setAddress("postal_code", e.target.value)}
-            autoComplete="postal-code"
-            maxLength={32}
-            disabled={billBusy}
-          />
-        </label>
-        <label className="block">
-          Country
-          <input
-            className="block w-full mt-1"
-            value={billing.country}
-            onChange={(e) => setAddress("country", e.target.value.toUpperCase())}
-            autoComplete="country"
-            maxLength={2}
-            placeholder="NG"
-            disabled={billBusy}
-          />
-        </label>
-        <p className="text-sm text-muted">Two-letter country code, for example NG.</p>
-        <button className="btn" type="submit" disabled={billBusy}>
-          <BusyLabel busy={billBusy} idle="Save billing details" working="Saving…" />
-        </button>
-        {billMsg ? <p>{billMsg}</p> : null}
-      </form>
-
-      {me.user.hasPassword !== false ? (
-        <details className="mt-10 max-w-md">
-          <summary className="cursor-pointer">Change password</summary>
-          <form onSubmit={savePassword} className="mt-4 space-y-3">
-            <label className="block">
-              Current password
-              <input
-                className="block w-full mt-1"
-                type="password"
-                value={current}
-                onChange={(e) => setCurrent(e.target.value)}
-                autoComplete="current-password"
-                disabled={pwBusy}
-              />
-            </label>
-            <label className="block">
-              New password
-              <input
-                className="block w-full mt-1"
-                type="password"
-                required
-                minLength={10}
-                value={next}
-                onChange={(e) => setNext(e.target.value)}
-                autoComplete="new-password"
-                disabled={pwBusy}
-              />
-            </label>
-            <button className="btn" type="submit" disabled={pwBusy}>
-              <BusyLabel busy={pwBusy} idle="Save password" working="Saving…" />
+    <div className="page account-page">
+      <header className="account-heading">
+        <h1>Account</h1>
+      </header>
+      <div className="account-grid">
+        <aside className="account-side">
+          {me.user.username ? <p className="account-handle">@{me.user.username}</p> : null}
+          <p className="account-email">{me.user.email}</p>
+          {me.user.emailVerified === false ? (
+            <p className="account-note text-muted">Confirm your email before buying credits or registering a file.</p>
+          ) : null}
+          <dl className="account-balance">
+            <dt>Credit balance</dt>
+            <dd>{balance ?? "…"}</dd>
+          </dl>
+          {paymentNote ? (
+            <p className="account-note" role="status">
+              {paymentNote}
+            </p>
+          ) : null}
+          {records.length ? (
+            <div className="account-records">
+              <h2>Records</h2>
+              <ul className="record-list">
+                {records.map((r) => (
+                  <li key={r.public_id}>
+                    <a href={`/verify/${r.public_id}`}>{r.public_id}</a> · {r.status} ·{" "}
+                    {String(r.created_at).slice(0, 10)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <div className="account-actions">
+            <a className="btn" href="/create">
+              Create a record
+            </a>
+            <a className="btn-secondary btn" href="/account/reports">
+              Reports
+            </a>
+            <a className="btn-secondary btn" href="/credits">
+              Buy credits
+            </a>
+            <button className="btn-secondary btn" type="button" onClick={logout}>
+              Sign out
             </button>
-            {pwMsg ? <p>{pwMsg}</p> : null}
+            <button className="btn-secondary btn" type="button" onClick={everywhere}>
+              Sign out everywhere
+            </button>
+          </div>
+        </aside>
+
+        <div className="account-main">
+          <form onSubmit={saveBilling} className="account-panel">
+            <h2>Billing details</h2>
+            <p className="text-sm text-muted">
+              Name, phone and billing address are sent with online payments. Email stays the address on this account.
+            </p>
+            <div className="account-fields">
+              <label className="block">
+                Name
+                <input
+                  className="block w-full mt-1"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  maxLength={511}
+                  disabled={billBusy}
+                />
+              </label>
+              <label className="block">
+                Phone
+                <input
+                  className="block w-full mt-1"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="+2348012345678"
+                  disabled={billBusy}
+                />
+              </label>
+              <label className="block">
+                Street address
+                <input
+                  className="block w-full mt-1"
+                  value={billing.line1}
+                  onChange={(e) => setAddress("line1", e.target.value)}
+                  autoComplete="address-line1"
+                  maxLength={255}
+                  disabled={billBusy}
+                />
+              </label>
+              <label className="block">
+                Address line 2
+                <input
+                  className="block w-full mt-1"
+                  value={billing.line2}
+                  onChange={(e) => setAddress("line2", e.target.value)}
+                  autoComplete="address-line2"
+                  maxLength={255}
+                  disabled={billBusy}
+                />
+              </label>
+              <div className="account-pair">
+                <label className="block">
+                  City
+                  <input
+                    className="block w-full mt-1"
+                    value={billing.city}
+                    onChange={(e) => setAddress("city", e.target.value)}
+                    autoComplete="address-level2"
+                    maxLength={128}
+                    disabled={billBusy}
+                  />
+                </label>
+                <label className="block">
+                  State
+                  <input
+                    className="block w-full mt-1"
+                    value={billing.state}
+                    onChange={(e) => setAddress("state", e.target.value)}
+                    autoComplete="address-level1"
+                    maxLength={128}
+                    disabled={billBusy}
+                  />
+                </label>
+              </div>
+              <div className="account-pair">
+                <label className="block">
+                  Postal code
+                  <input
+                    className="block w-full mt-1"
+                    value={billing.postal_code}
+                    onChange={(e) => setAddress("postal_code", e.target.value)}
+                    autoComplete="postal-code"
+                    maxLength={32}
+                    disabled={billBusy}
+                  />
+                </label>
+                <label className="block">
+                  Country
+                  <input
+                    className="block w-full mt-1"
+                    value={billing.country}
+                    onChange={(e) => setAddress("country", e.target.value.toUpperCase())}
+                    autoComplete="country"
+                    maxLength={2}
+                    placeholder="NG"
+                    disabled={billBusy}
+                  />
+                </label>
+              </div>
+              <p className="text-sm text-muted">Two-letter country code, for example NG.</p>
+              <button className="btn" type="submit" disabled={billBusy}>
+                <BusyLabel busy={billBusy} idle="Save billing details" working="Saving…" />
+              </button>
+              {billMsg ? <p role="status">{billMsg}</p> : null}
+            </div>
           </form>
-        </details>
-      ) : (
-        <form onSubmit={savePassword} className="mt-10 max-w-md space-y-3">
-          <h2 className="text-xl">Set a password</h2>
-          <p className="text-sm text-muted">
-            You signed in with a link. Add a password if you want to use username or email next time.
-          </p>
-          <label className="block">
-            Password
-            <input
-              className="block w-full mt-1"
-              type="password"
-              required
-              minLength={10}
-              value={next}
-              onChange={(e) => setNext(e.target.value)}
-              autoComplete="new-password"
-              disabled={pwBusy}
-            />
-          </label>
-          <button className="btn" type="submit" disabled={pwBusy}>
-            <BusyLabel busy={pwBusy} idle="Save password" working="Saving…" />
-          </button>
-          {pwMsg ? <p>{pwMsg}</p> : null}
-        </form>
-      )}
 
-      <p className="action-row">
-        <a className="btn" href="/create">
-          Create a record
-        </a>
-        <a className="btn-secondary btn" href="/account/reports">
-          Reports
-        </a>
-        <a className="btn-secondary btn" href="/credits">
-          Buy credits
-        </a>
-        <button className="btn-secondary btn" type="button" onClick={logout}>
-          Sign out
-        </button>
-        <button className="btn-secondary btn" type="button" onClick={everywhere}>
-          Sign out everywhere
-        </button>
-      </p>
+          {me.user.hasPassword !== false ? (
+            <details className="account-panel">
+              <summary>Change password</summary>
+              <form onSubmit={savePassword} className="account-fields">
+                <label className="block">
+                  Current password
+                  <input
+                    className="block w-full mt-1"
+                    type="password"
+                    value={current}
+                    onChange={(e) => setCurrent(e.target.value)}
+                    autoComplete="current-password"
+                    disabled={pwBusy}
+                  />
+                </label>
+                <label className="block">
+                  New password
+                  <input
+                    className="block w-full mt-1"
+                    type="password"
+                    required
+                    minLength={10}
+                    value={next}
+                    onChange={(e) => setNext(e.target.value)}
+                    autoComplete="new-password"
+                    disabled={pwBusy}
+                  />
+                </label>
+                <button className="btn" type="submit" disabled={pwBusy}>
+                  <BusyLabel busy={pwBusy} idle="Save password" working="Saving…" />
+                </button>
+                {pwMsg ? <p role="status">{pwMsg}</p> : null}
+              </form>
+            </details>
+          ) : (
+            <form onSubmit={savePassword} className="account-panel">
+              <h2>Set a password</h2>
+              <p className="text-sm text-muted">
+                You signed in with a link. Add a password if you want to use username or email next time.
+              </p>
+              <div className="account-fields">
+                <label className="block">
+                  Password
+                  <input
+                    className="block w-full mt-1"
+                    type="password"
+                    required
+                    minLength={10}
+                    value={next}
+                    onChange={(e) => setNext(e.target.value)}
+                    autoComplete="new-password"
+                    disabled={pwBusy}
+                  />
+                </label>
+                <button className="btn" type="submit" disabled={pwBusy}>
+                  <BusyLabel busy={pwBusy} idle="Save password" working="Saving…" />
+                </button>
+                {pwMsg ? <p role="status">{pwMsg}</p> : null}
+              </div>
+            </form>
+          )}
 
-      <details className="mt-12">
-        <summary className="cursor-pointer">Delete account</summary>
-        <div className="mt-4">
-          <DeleteAccountForm hasPassword={me.user.hasPassword !== false} />
+          <details className="account-panel">
+            <summary>Delete account</summary>
+            <div className="mt-2">
+              <DeleteAccountForm hasPassword={me.user.hasPassword !== false} />
+            </div>
+          </details>
         </div>
-      </details>
+      </div>
     </div>
   );
 }

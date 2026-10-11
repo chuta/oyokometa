@@ -1130,13 +1130,132 @@ textarea {
   font-size: 0.85rem;
 }
 
-.auth-email {
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.account-page {
+  max-width: 1180px;
+}
+
+.account-heading h1 {
+  margin: 0 0 1.25rem;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+}
+
+.account-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 960px) {
+  .account-grid {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .account-side {
+    position: sticky;
+    top: 5.5rem;
+  }
+}
+
+.account-side,
+.account-panel {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.15rem 1.2rem;
+  min-width: 0;
+}
+
+.account-main {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.account-panel h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.45rem;
+}
+
+.account-handle {
+  margin: 0;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.account-email {
+  margin: 0.25rem 0 0;
   color: var(--muted);
-  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.account-balance {
+  margin: 1rem 0 0;
+}
+
+.account-balance dt,
+.account-records h2 {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-family: var(--font-plex), system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.account-balance dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-note {
+  margin: 0.75rem 0 0;
+}
+
+.account-records {
+  margin-top: 1rem;
+}
+
+.account-records h2 {
+  margin: 0 0 0.35rem;
+}
+
+.account-records .record-list {
+  margin-top: 0;
+}
+
+.account-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.account-actions .btn {
+  width: 100%;
+  margin-top: 0;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.account-fields {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.account-pair {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .account-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.account-panel .max-w-md {
+  max-width: none;
 }
 
 .site-footer {
@@ -1359,7 +1478,10 @@ summary {
 
   .report-grid,
   .report-file,
-  .report-main {
+  .report-main,
+  .account-grid,
+  .account-side,
+  .account-main {
     min-width: 0;
   }
 

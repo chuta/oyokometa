@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Me = { user: { email: string; username: string | null; role: string } | null };
+type Me = { user: { role: string } | null };
 
 export function AuthBar() {
   const [me, setMe] = useState<Me | null>(null);
@@ -25,16 +25,12 @@ export function AuthBar() {
       </span>
     );
   }
+  if (me.user.role !== "admin") return null;
   return (
     <span className="auth-user">
-      <a href="/account" className="auth-email">
-        {me.user.username ? `@${me.user.username}` : me.user.email}
+      <a href="/admin" className="btn btn-ghost btn-compact">
+        Admin
       </a>
-      {me.user.role === "admin" ? (
-        <a href="/admin" className="btn btn-ghost btn-compact">
-          Admin
-        </a>
-      ) : null}
     </span>
   );
 }
