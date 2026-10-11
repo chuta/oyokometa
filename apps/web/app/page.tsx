@@ -6,18 +6,17 @@ export default function HomePage() {
           <p className="kicker">Image provenance</p>
           <h1>What can this image tell you?</h1>
           <p className="lede">
-            Investigate an image&apos;s origin, metadata and editing history. Create a record of the
-            file you control. Let another person independently check whether a file matches that
-            record.
+            An image can tell a story its file does not. See what can be established, what has been
+            detected, and what remains uncertain.
           </p>
           <p className="lede lede-follow">
-            See what is verified, what is detected, and what is inferred — with the evidence and
-            limitations made clear.
+            There is no real or fake verdict, and no authenticity score. The evidence and its limits
+            stay visible.
           </p>
           <div className="hero-actions">
             <a className="action-card primary" href="/analyze">
               <strong>Analyze an image</strong>
-              <span>Free Quick Scan. Investigate origin, metadata and editing history.</span>
+              <span>Free Quick Scan. Inspect the file, its metadata and its technical signals.</span>
             </a>
             <a className="action-card" href="/create">
               <strong>Create a record</strong>
@@ -25,12 +24,12 @@ export default function HomePage() {
             </a>
             <a className="action-card" href="/verify">
               <strong>Verify a file</strong>
-              <span>Independently check whether a file matches a registered record.</span>
+              <span>Check whether a file matches a registered record. A match is of bytes.</span>
             </a>
           </div>
           <p className="meta-line">
             Forensic signals can be uncertain. A file&apos;s provenance does not establish whether
-            the event depicted actually happened. Still images only — JPEG, PNG, WebP, HEIC/HEIF or
+            the event depicted actually happened. Still images only: JPEG, PNG, WebP, HEIC/HEIF or
             TIFF, up to 25 MB.
           </p>
         </div>
@@ -38,16 +37,24 @@ export default function HomePage() {
       <section className="pillars" aria-label="How statements are tagged">
         <article className="pillar">
           <h2>Verified</h2>
-          <p>Cryptographic checks that hold or fail. A match is a match of bytes, not of meaning.</p>
+          <p>A cryptographic check with an established result. It does not settle what the image depicts.</p>
         </article>
         <article className="pillar">
           <h2>Detected</h2>
-          <p>Read from the file: hashes, metadata, structure, Content Credentials when present.</p>
+          <p>Read from the file. Metadata and Content Credentials can be missing, altered or misleading.</p>
         </article>
         <article className="pillar">
           <h2>Inferred</h2>
-          <p>Analysis that can be wrong. Lower-tier signals never override a higher tier.</p>
+          <p>A conclusion from analysis or a detection tool. It can be wrong.</p>
         </article>
+        <article className="pillar">
+          <h2>Declared</h2>
+          <p>Stated by a person. The record keeps the claim. It does not prove it.</p>
+        </article>
+        <p className="pillars-note">
+          These tags are not a ranking of truth. When they disagree, a lower tier does not override a
+          higher one.
+        </p>
       </section>
       <section className="audiences" aria-labelledby="audiences-heading">
         <div className="audiences-inner">
