@@ -10,6 +10,8 @@ primary_region = "lhr"
 [build]
   dockerfile = "../clamav/Dockerfile"
 
+# shared-cpu-1x cannot exceed 2048 MB. A concurrent database reload doubles that and the
+# kernel OOM-killed clamd. Reload is disabled in the image so one database fits in this size.
 [[vm]]
   size = "shared-cpu-1x"
   memory = "2048mb"
@@ -22,6 +24,6 @@ primary_region = "lhr"
   [checks.clamd]
     type = "tcp"
     port = 3310
-    grace_period = "60s"
+    grace_period = "180s"
     interval = "30s"
     timeout = "5s"
