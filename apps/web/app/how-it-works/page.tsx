@@ -1,6 +1,6 @@
 export default function HowPage() {
   return (
-    <article className="page page-narrow">
+    <article className="page">
       <p className="kicker">Method</p>
       <h1 className="text-4xl mb-4">How it works</h1>
       <p className="text-muted mb-4">Understand the evidence behind an image.</p>

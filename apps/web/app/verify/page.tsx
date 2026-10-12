@@ -2,7 +2,7 @@ import { VerifyForm } from "@/components/VerifyForm";
 
 export default function VerifyPage() {
   return (
-    <div className="page page-narrow">
+    <div className="page">
       <p className="kicker">Verify</p>
       <h1 className="text-4xl mb-3">Verify a file</h1>
       <p className="text-muted mb-8">

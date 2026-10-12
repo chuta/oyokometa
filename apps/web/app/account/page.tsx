@@ -254,7 +254,7 @@ export default function AccountPage() {
           <form onSubmit={saveBilling} className="account-panel">
             <h2>Billing details</h2>
             <p className="text-sm text-muted">
-              Name, phone and billing address are sent with online payments. Email stays the address on this account.
+              Name, phone and billing address are sent with online payments.
             </p>
             <div className="account-fields">
               <label className="block">

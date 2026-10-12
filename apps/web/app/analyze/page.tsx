@@ -2,7 +2,7 @@ import { AnalyzeForm } from "@/components/AnalyzeForm";
 
 export default function AnalyzePage() {
   return (
-    <div className="page page-narrow">
+    <div className="page">
       <p className="kicker">Analyze</p>
       <h1 className="text-4xl mb-3">Analyze an image</h1>
       <p className="text-muted mb-8">
