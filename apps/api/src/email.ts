@@ -153,13 +153,13 @@ export async function sendTransferInstructions(input: {
 }) {
   await sendTransactional({
     to: input.email,
-    subject: `Bank transfer for Oyokometa credits (${input.reference})`,
+    subject: `Direct bank transfer for Oyokometa credits (${input.reference})`,
     kicker: "Credits",
-    heading: "Transfer these exact details",
-    preheader: `Send ${input.amountLabel} with narration ${input.reference}.`,
+    heading: "Direct bank transfer",
+    preheader: `Send ${input.amountLabel} with narration ${input.reference}. There is no fee.`,
     paragraphs: [
-      `Send ${input.amountLabel} for ${input.credits} credits. Put the reference in the narration or payment description so the deposit can be matched.`,
-      "Keep this email until the transfer is matched.",
+      `Send ${input.amountLabel} for ${input.credits} credits. There is no fee on this direct transfer. Put the reference in the narration or payment description so the deposit can be matched.`,
+      "Credits are added after we confirm the deposit. Keep this email until that happens.",
     ],
     details: [
       { label: "Reference", value: input.reference },

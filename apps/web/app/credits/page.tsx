@@ -115,14 +115,15 @@ export default function CreditsPage() {
         <p className="mb-6">Balance: {balance ?? "…"} credits</p>
       )}
       <p className="text-muted text-sm mb-6">
-        Pay by bank transfer with the reference we give you. Credits are added once we match the
-        deposit, usually within one business day. Pay online to use a card or a local payment method.
-        International cards appear when the checkout is set to pay in US dollars. Those credits are
-        added when the payment is confirmed.
+        Pay by direct bank transfer to send the naira price straight to our account. There is no fee,
+        and credits are added after we confirm the deposit, usually within a few mins. Pay
+        online for a card or a bank transfer through checkout. International cards appear when the
+        checkout is set to pay in US dollars. A bank transfer through checkout adds a flat 1.5%
+        charge, and those credits are added automatically when the payment is confirmed.
       </p>
       {remainingMs > 0 ? (
         <p className="mb-6" role="status">
-          You can start another bank transfer in {waitClock(remainingMs)}.
+          You can start another direct bank transfer in {waitClock(remainingMs)}.
           {openPaymentId ? (
             <>
               {" "}
@@ -141,7 +142,7 @@ export default function CreditsPage() {
             {signedIn ? (
               <div className="pack-actions">
                 <button className="btn" type="button" onClick={() => buy(p.id)} disabled={remainingMs > 0 || busyId !== null}>
-                  Pay by bank transfer
+                  Pay by direct bank transfer - free
                 </button>
                 {p.usd_price_label ? (
                   <button

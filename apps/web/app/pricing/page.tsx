@@ -46,14 +46,16 @@ export default function PricingPage() {
           <li key={p.id} className="pack">
             <strong>{p.name}</strong>
             <p className="mt-2 mb-0">{p.credits} credits</p>
-            <p className="text-muted mt-2 mb-0">{p.price_label} by bank transfer</p>
+            <p className="text-muted mt-2 mb-0">{p.price_label} by direct bank transfer, free</p>
             {p.usd_price_label ? <p className="text-muted mt-1 mb-0">{p.usd_price_label} online</p> : null}
           </li>
         ))}
       </ul>
       <p className="mt-8 text-muted">
-        Bank transfer uses the naira price and a unique narration code. Online payment uses the US dollar
-        price. <a href="/credits">Buy credits</a>. <a href="/credits/terms">Credit terms</a>.
+        Direct bank transfer uses the naira price and a unique narration code. There is no fee, and
+        credits are added after we confirm the deposit. Online payment uses the US dollar price for
+        cards. A bank transfer in that checkout adds a flat 1.5% charge, and credits are added when
+        the payment is confirmed. <a href="/credits">Buy credits</a>. <a href="/credits/terms">Credit terms</a>.
       </p>
     </article>
   );

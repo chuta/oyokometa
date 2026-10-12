@@ -1356,6 +1356,11 @@ textarea {
 
 .pack-actions .btn {
   margin-top: 0;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .charge-confirm {

@@ -155,10 +155,10 @@ export default function PayPage() {
 
   return (
     <div className="page page-narrow">
-      <h1 className="text-3xl mb-4">Bank transfer</h1>
+      <h1 className="text-3xl mb-4">Direct bank transfer</h1>
       <p className="mb-4">
-        Transfer <strong>{pay.amount_label}</strong> for <strong>{pay.credits} credits</strong>. Put
-        this exact reference in the narration / description:
+        Transfer <strong>{pay.amount_label}</strong> for <strong>{pay.credits} credits</strong>. There
+        is no fee. Put this exact reference in the narration / description:
       </p>
       <div className="copy-field copy-field-ref">
         <div>
@@ -210,7 +210,7 @@ export default function PayPage() {
       ) : (
         <>
           <p className="text-muted text-sm mt-6">
-            Credits are added after we match your deposit, usually within a few minutes.
+            Credits are added after we confirm the deposit, usually within a few mins.
           </p>
           <button className="btn mt-4" type="button" onClick={confirm} disabled={busy}>
             <BusyLabel busy={busy} idle="I have sent the transfer" working="Saving…" />

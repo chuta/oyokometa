@@ -165,7 +165,7 @@ creditRoutes.post("/payments/intents", async (c) => {
       {
         ...apiError(
           ERROR_CODES.rate_limited,
-          `You can start another bank transfer in ${transferWaitLabel(created.remainingMs)}.`,
+          `You can start another direct bank transfer in ${transferWaitLabel(created.remainingMs)}.`,
           auth.requestId,
         ),
         retry_after_seconds: seconds,
