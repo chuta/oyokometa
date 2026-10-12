@@ -117,7 +117,8 @@ export default function CreditsPage() {
       <p className="text-muted text-sm mb-6">
         Pay by bank transfer with the reference we give you. Credits are added once we match the
         deposit, usually within one business day. Pay online to use a card or a local payment method.
-        Those credits are added when the payment is confirmed.
+        International cards appear when the checkout is set to pay in US dollars. Those credits are
+        added when the payment is confirmed.
       </p>
       {remainingMs > 0 ? (
         <p className="mb-6" role="status">
