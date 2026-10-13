@@ -150,9 +150,6 @@ export function FindingsDashboard({
                   <h2>Manipulation check</h2>
                   <p className="report-ai-status">{findings.manipulation_check.label}</p>
                   <p>{findings.manipulation_check.detail}</p>
-                  {!findings.ai_labels_enabled && !aiFailed ? (
-                    <p>Other pixel-level labels stay off until the benchmark gate is recorded as passed.</p>
-                  ) : null}
                 </>
               ) : (
                 <>
