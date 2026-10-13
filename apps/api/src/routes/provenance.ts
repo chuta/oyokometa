@@ -203,9 +203,13 @@ provenanceRoutes.post("/provenance", async (c) => {
     const signature = await signer.signPayload(canonicalPayload);
     const tsa = await stampRecord(canonical);
     let thumbnailKey: string | null = null;
-    if (body.show_thumbnail && visibility === "public" && asset.previewKey) {
-      thumbnailKey = `thumbnails/${recordId}.jpg`;
-      await writeBlob(thumbnailKey, await readBlob(asset.previewKey), "image/jpeg");
+    if (asset.previewKey) {
+      try {
+        thumbnailKey = `thumbnails/${recordId}.jpg`;
+        await writeBlob(thumbnailKey, await readBlob(asset.previewKey), "image/jpeg");
+      } catch {
+        thumbnailKey = null;
+      }
     }
     await db.insert(provenanceRecords).values({
       id: recordId,
@@ -384,17 +388,17 @@ provenanceRoutes.get("/verify/:public_id", async (c) => {
 
 provenanceRoutes.get("/verify/:public_id/thumbnail", async (c) => {
   const auth = c.get("auth");
-  const view = await publicRecordView(c.req.param("public_id"), auth.user?.id ?? null);
-  if (!view || !view.show_thumbnail || !view.thumbnail_available || view.status !== "active") {
-    return notFound(c);
-  }
   const db = getDb();
   const [row] = await db
     .select()
     .from(provenanceRecords)
     .where(eq(provenanceRecords.publicId, c.req.param("public_id")))
     .limit(1);
-  if (!row?.thumbnailKey) return notFound(c);
+  if (!row?.thumbnailKey || row.status === "withdrawn") return notFound(c);
+  const isRegistrant = Boolean(auth.user && row.ownerUserId === auth.user.id);
+  if (row.visibility !== "public" && !isRegistrant) return notFound(c);
+  const publicThumb = row.visibility === "public" && row.showThumbnail && row.status === "active";
+  if (!publicThumb && !isRegistrant) return notFound(c);
   const buf = await readBlob(row.thumbnailKey);
   return c.body(buf, 200, {
     "content-type": "image/jpeg",
@@ -625,6 +629,42 @@ function recordProblemReason(
   return "The timestamp or signature check failed.";
 }
 
+async function previewUrlForViewer(
+  row: typeof provenanceRecords.$inferSelect,
+  isRegistrant: boolean,
+  withdrawn: boolean,
+) {
+  if (withdrawn) return null;
+  let key = row.thumbnailKey;
+  if (!key && isRegistrant) key = await copyBaselinePreview(row);
+  if (!key) return null;
+  const publicThumb = row.visibility === "public" && row.showThumbnail && row.status === "active";
+  if (!publicThumb && !isRegistrant) return null;
+  return `/api/v1/verify/${row.publicId}/thumbnail`;
+}
+
+/** Keep the analysis preview on the record so it survives image retention. */
+async function copyBaselinePreview(row: typeof provenanceRecords.$inferSelect) {
+  if (!row.baselineJobId) return null;
+  const db = getDb();
+  const [job] = await db
+    .select({ assetId: analysisJobs.assetId })
+    .from(analysisJobs)
+    .where(eq(analysisJobs.id, row.baselineJobId))
+    .limit(1);
+  if (!job) return null;
+  const [asset] = await db.select().from(assets).where(eq(assets.id, job.assetId)).limit(1);
+  if (!asset?.previewKey || asset.imageDeletedAt) return null;
+  const key = `thumbnails/${row.id}.jpg`;
+  try {
+    await writeBlob(key, await readBlob(asset.previewKey), "image/jpeg");
+    await db.update(provenanceRecords).set({ thumbnailKey: key }).where(eq(provenanceRecords.id, row.id));
+    return key;
+  } catch {
+    return null;
+  }
+}
+
 async function publicRecordView(publicId: string, userId: string | null) {
   const db = getDb();
   const [row] = await db.select().from(provenanceRecords).where(eq(provenanceRecords.publicId, publicId)).limit(1);
@@ -668,6 +708,7 @@ async function publicRecordView(publicId: string, userId: string | null) {
   const origin = publicAppOrigin();
   const verifyUrl = `${origin}/verify/${row.publicId}`;
   const canonical = JSON.parse(row.canonicalJson) as { contradictions?: string[] };
+  const thumbnailUrl = await previewUrlForViewer(row, isRegistrant, withdrawn);
   return {
     public_id: row.publicId,
     asset_sha256: row.assetSha256,
@@ -691,11 +732,8 @@ async function publicRecordView(publicId: string, userId: string | null) {
       ? "Registration time is Oyokometa's clock (no independent timestamp)."
       : "An independent timestamp token is attached to this record.",
     show_thumbnail: !withdrawn && row.showThumbnail,
-    thumbnail_available: Boolean(!withdrawn && row.showThumbnail && row.thumbnailKey),
-    thumbnail_url:
-      !withdrawn && row.showThumbnail && row.thumbnailKey
-        ? `/api/v1/verify/${row.publicId}/thumbnail`
-        : null,
+    thumbnail_available: Boolean(thumbnailUrl),
+    thumbnail_url: thumbnailUrl,
     verify_url: verifyUrl,
     qr_svg: await qrSvg(verifyUrl),
     duplicate_note:

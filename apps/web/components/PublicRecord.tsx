@@ -133,7 +133,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img className="report-preview" src={view.thumbnail_url} alt="Metadata-stripped preview of the registered file" />
             ) : (
-              <p className="report-preview report-preview-empty">No public preview for this file.</p>
+              <p className="report-preview report-preview-empty">No preview for this file.</p>
             )}
             <div className="report-file-id">
               <div>
