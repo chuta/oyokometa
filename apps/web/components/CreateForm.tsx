@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { REGISTRATION_ATTESTATION, RECORD_STATES } from "@oyokometa/config";
+import { REGISTRATION_ATTESTATION } from "@oyokometa/config";
 import { TierTag } from "@oyokometa/findings-ui";
 import { BusyLabel, ProgressTrack, Spinner } from "./ActionStatus";
 import { ChargeConfirm } from "./ChargeConfirm";
@@ -13,6 +13,34 @@ type Findings = {
   identity?: { sha256?: string; detected_type?: string; width?: number; height?: number; byte_size?: number };
   c2pa?: { state?: string; ai_assertion?: string | null };
 };
+
+const DETECTED_LABEL: Record<string, string> = {
+  ai: "AI",
+  origin: "Origin",
+  editing: "Editing",
+  provenance: "Provenance",
+  timestamps: "Timestamps",
+};
+
+function DeclareField({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="declare-field" htmlFor={id}>
+      <span className="field-name">{label}</span>
+      <span className="field-hint">{hint}</span>
+      {children}
+    </label>
+  );
+}
 
 export function CreateForm() {
   const input = useRef<HTMLInputElement>(null);
@@ -165,7 +193,6 @@ export function CreateForm() {
 
   return (
     <div>
-      <p className="mb-6 max-w-prose">{RECORD_STATES}</p>
       {!findings ? (
         <>
           <div
@@ -188,10 +215,14 @@ export function CreateForm() {
             </button>
             {file ? <p className="mt-3">{file.name}</p> : <p className="mt-3 text-muted">or drop it here</p>}
           </div>
+          <p className="mt-4 max-w-prose text-muted">
+            The baseline check reads this file. Registration then binds its original-file hash and a
+            time set by the server. Anything you type after that is a declaration.
+          </p>
           {uploading ? <ProgressTrack value={uploadPct} label="Uploading" /> : null}
           {busy && !uploading ? (
             <p className="mt-4">
-              <Spinner label={stage ? `Analyzing — ${stage.replaceAll("_", " ")}` : "Starting analysis"} />
+              <Spinner label={stage ? `Analyzing: ${stage.replaceAll("_", " ")}` : "Starting analysis"} />
             </p>
           ) : null}
           <p className="mt-4">
@@ -202,75 +233,115 @@ export function CreateForm() {
         </>
       ) : (
         <>
+          <section className="register-facts" aria-labelledby="register-facts-heading">
+            <h2 id="register-facts-heading" className="text-xl mb-2">
+              What this record will bind
+            </h2>
+            <p className="text-sm text-muted mb-4">
+              These two facts are set by Oyokometa. They are not declarations.
+            </p>
+            <dl>
+              <div>
+                <dt>Original file hash</dt>
+                <dd className="hash">{findings.identity?.sha256 ?? "Not available from this check"}</dd>
+                <p className="field-hint">
+                  SHA-256 of the exact bytes uploaded. A later check compares another file with this
+                  fingerprint.
+                </p>
+              </div>
+              <div>
+                <dt>Registration time</dt>
+                <dd>Set by the server when you register</dd>
+                <p className="field-hint">
+                  You do not enter this time. A creation date below is a separate declaration.
+                </p>
+              </div>
+            </dl>
+          </section>
           <div className="create-cols">
             <section>
               <h2 className="text-xl mb-2">Detected by Oyokometa</h2>
-              <p className="text-sm text-muted mb-3">Read-only. Tagged from the file.</p>
+              <p className="text-sm text-muted mb-3">Read from the file. You cannot edit these.</p>
               <p>
                 <TierTag tier="detected" /> {findings.executive?.summary}
               </p>
-              {findings.identity?.sha256 ? (
-                <p className="mono mt-3">{findings.identity.sha256}</p>
-              ) : null}
-              <ul className="mt-3 text-sm space-y-2">
+              <dl className="detected-list">
                 {Object.entries(findings.categories ?? {}).map(([k, v]) => (
-                  <li key={k}>
-                    <strong className="capitalize">{k}</strong>: {v.classification} — {v.summary}
-                  </li>
+                  <div key={k}>
+                    <dt>{DETECTED_LABEL[k] ?? k}</dt>
+                    <dd>
+                      {v.classification}. {v.summary}
+                    </dd>
+                  </div>
                 ))}
-              </ul>
+              </dl>
             </section>
             <section>
               <h2 className="text-xl mb-2">Declared by you</h2>
               <p className="text-sm text-muted mb-3">
-                Optional. Shown with a <TierTag tier="declared" /> tag everywhere.
+                Optional. Each value is stored as a <TierTag tier="declared" /> statement. None of
+                them is checked against the file.
               </p>
-              <label className="block text-sm mb-2">
-                Mode
-                <select className="block w-full border border-line p-2 mt-1" value={mode} onChange={(e) => setMode(e.target.value)}>
+              <DeclareField
+                id="registration-mode"
+                label="Registration mode"
+                hint="How this registration is described. It does not prove who created the file."
+              >
+                <select id="registration-mode" value={mode} onChange={(e) => setMode(e.target.value)}>
                   <option value="file_registration">File registration (no creator claim)</option>
                   <option value="creator_declaration">Creator declaration (“I created this”)</option>
                   <option value="organization_declaration">Organization declaration (schema only)</option>
                 </select>
-              </label>
+              </DeclareField>
               {mode === "organization_declaration" ? (
                 <p className="text-sm text-muted mb-2">
                   Organization verification is not available yet. This is stored as a declaration.
                 </p>
               ) : null}
-              <label className="block text-sm mb-2">
-                Creator name
-                <input className="block w-full border border-line p-2 mt-1" value={creatorName} onChange={(e) => setCreatorName(e.target.value)} />
-              </label>
-              <label className="block text-sm mb-2">
-                Creation date
-                <input className="block w-full border border-line p-2 mt-1" type="date" value={creationDate} onChange={(e) => setCreationDate(e.target.value)} />
-              </label>
-              <label className="block text-sm mb-2">
-                Device or source
-                <input className="block w-full border border-line p-2 mt-1" value={device} onChange={(e) => setDevice(e.target.value)} />
-              </label>
-              <label className="block text-sm mb-2">
-                Description
-                <textarea className="block w-full border border-line p-2 mt-1" value={description} onChange={(e) => setDescription(e.target.value)} />
-              </label>
-              <label className="block text-sm mb-2">
-                AI-use disclosure
-                <select className="block w-full border border-line p-2 mt-1" value={aiUse} onChange={(e) => setAiUse(e.target.value)}>
+              <DeclareField
+                id="creator-name"
+                label="Creator name"
+                hint="Optional declaration. Not checked against an identity."
+              >
+                <input id="creator-name" value={creatorName} onChange={(e) => setCreatorName(e.target.value)} />
+              </DeclareField>
+              <DeclareField
+                id="creation-date"
+                label="Creation date"
+                hint="Optional declaration. This is not the server registration time."
+              >
+                <input id="creation-date" type="date" value={creationDate} onChange={(e) => setCreationDate(e.target.value)} />
+              </DeclareField>
+              <DeclareField
+                id="device-or-source"
+                label="Device or source"
+                hint="Optional declaration. Not read from the file."
+              >
+                <input id="device-or-source" value={device} onChange={(e) => setDevice(e.target.value)} />
+              </DeclareField>
+              <DeclareField id="description" label="Description" hint="Optional declaration. Shown as your statement.">
+                <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
+              </DeclareField>
+              <DeclareField
+                id="ai-use"
+                label="AI-use disclosure"
+                hint="Optional declaration. Separate from anything detected in the file."
+              >
+                <select id="ai-use" value={aiUse} onChange={(e) => setAiUse(e.target.value)}>
                   <option value="">Prefer not to say</option>
                   <option value="none">None</option>
                   <option value="ai_assisted">AI-assisted</option>
                   <option value="ai_generated">AI-generated</option>
                 </select>
-              </label>
-              <label className="block text-sm mb-2">
-                Licence note
-                <input className="block w-full border border-line p-2 mt-1" value={licence} onChange={(e) => setLicence(e.target.value)} />
-              </label>
+              </DeclareField>
+              <DeclareField id="licence-note" label="Licence note" hint="Optional declaration. Not a verified licence.">
+                <input id="licence-note" value={licence} onChange={(e) => setLicence(e.target.value)} />
+              </DeclareField>
             </section>
           </div>
           <fieldset className="mt-6">
-            <legend className="font-medium mb-2">Visibility</legend>
+            <legend className="font-medium mb-1">Visibility</legend>
+            <p className="field-hint mb-2">Who can open the verify page. This does not change the file hash.</p>
             <label className="mr-4">
               <input type="radio" name="vis" checked={visibility === "private"} onChange={() => setVisibility("private")} />{" "}
               Private
@@ -284,10 +355,13 @@ export function CreateForm() {
             <input type="checkbox" checked={thumb} onChange={(e) => setThumb(e.target.checked)} disabled={visibility !== "public"} />{" "}
             Show a metadata-stripped thumbnail on the public page
           </label>
-          <label className="block text-sm mt-3">
-            Display name on the public page (optional)
-            <input className="block w-full border border-line p-2 mt-1" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          </label>
+          <DeclareField
+            id="display-name"
+            label="Display name"
+            hint="Optional. Shown on the public page only. It is not the creator name."
+          >
+            <input id="display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+          </DeclareField>
           <label className="block mt-6">
             <input
               type="checkbox"

@@ -1133,12 +1133,94 @@ textarea {
   border: 0;
 }
 
+.register-facts {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.register-facts dl {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+}
+
+.register-facts dt {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 0.35rem;
+}
+
+.register-facts dd {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.register-facts .hash {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.field-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 0.35rem;
+}
+
+.declare-field {
+  display: block;
+  margin-bottom: 0.95rem;
+}
+
+.declare-field .field-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.declare-field .field-hint {
+  margin-bottom: 0.35rem;
+}
+
+.detected-list {
+  margin: 0.85rem 0 0;
+}
+
+.detected-list div {
+  margin-bottom: 0.75rem;
+}
+
+.detected-list dt {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.detected-list dd {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .create-cols {
   display: grid;
   gap: 1.5rem;
 }
 
 @media (min-width: 768px) {
+  .register-facts dl {
+    grid-template-columns: 1.4fr 0.8fr;
+    align-items: start;
+  }
+
   .create-cols {
     grid-template-columns: 1fr 1fr;
   }
