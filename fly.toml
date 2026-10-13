@@ -28,6 +28,8 @@ primary_region = "lhr"
   INLINE_WORKER = "true"
   STORAGE_DRIVER = "fs"
   FS_STORAGE_DIR = "/data/storage"
+  # Official + interim C2PA trust anchors. The worker downloads them here; c2pa-node does not fetch URLs.
+  C2PA_TRUST_DIR = "/data/c2pa-trust"
   AI_LABELS_ENABLED = "false"
   RULESET_VERSION = "ruleset-1.0.0"
   API_PUBLIC_URL = "https://oyokometa-api.fly.dev"

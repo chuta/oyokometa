@@ -1,5 +1,6 @@
 import type { C2paState } from "@oyokometa/evidence";
 import { failureFromStatus, stateFromStatus, type StatusEntry } from "./c2pa-status.js";
+import { ensureTrustAnchors } from "./c2pa-trust.js";
 
 export const C2PA_PRODUCER = "c2pa-worker@2.3.0";
 export const C2PA_SPEC = "C2PA Technical Specification 2.3";
@@ -36,42 +37,19 @@ type ManifestJson = {
   ingredients?: unknown;
 };
 
-let trustCache = { version: "unfetched", fetchedAt: 0 };
-
 export async function refreshTrustList(): Promise<string> {
-  if (Date.now() - trustCache.fetchedAt < 24 * 3600_000 && trustCache.version !== "unfetched") {
-    return trustCache.version;
-  }
-  const pinned = process.env.C2PA_TRUST_LIST_VERSION?.trim();
-  if (pinned) {
-    trustCache = { version: pinned, fetchedAt: Date.now() };
-    return pinned;
-  }
-  try {
-    const res = await fetch("https://caoclist.adobe.com/config.cfg", { signal: AbortSignal.timeout(10_000) });
-    if (res.ok) {
-      const version = `c2pa-2.3-trust-${new Date().toISOString().slice(0, 10)}`;
-      trustCache = { version, fetchedAt: Date.now() };
-      return version;
-    }
-  } catch {
-    /* offline: keep last or mark bundled */
-  }
-  const version =
-    trustCache.version === "unfetched" ? "c2pa-rs-bundled-trust-list" : trustCache.version;
-  trustCache = { version, fetchedAt: Date.now() };
-  return version;
+  const stored = await ensureTrustAnchors();
+  return stored.version;
 }
 
 export async function analyzeC2pa(buf: Buffer, mimeType = "application/octet-stream"): Promise<C2paAnalysis> {
-  const trust_list_version = await refreshTrustList();
+  const stored = await ensureTrustAnchors();
+  const trust_list_version = stored.version;
   try {
     const { Reader, Context } = await import("@contentauth/c2pa-node");
-    const trustConfig =
-      process.env.C2PA_TRUST_CONFIG?.trim() || "https://caoclist.adobe.com/config.cfg";
     const context = new Context({
       verify: { verifyAfterReading: true, verifyTrust: true },
-      trust: { trustConfig },
+      trust: stored.anchorsPath ? { trustAnchors: stored.anchorsPath } : {},
     });
     const reader = await Reader.fromAsset({ buffer: buf, mimeType }, context);
     if (!reader) return empty("not_detected", trust_list_version);
@@ -96,11 +74,6 @@ export function mapStore(store: ManifestStore, trust_list_version: string): C2pa
   const activeLabel = store.active_manifest ?? null;
   const active = activeLabel ? store.manifests?.[activeLabel] : undefined;
   const status = flattenStatus(store);
-  const recordedTrust =
-    store.validation_results?.trustListUri ??
-    (store.validation_results?.specVersion
-      ? `c2pa-${store.validation_results.specVersion}`
-      : trust_list_version);
   const state = stateFromStatus(status, Boolean(activeLabel && active), store.validation_state);
   const actions = extractActions(active);
   return {
@@ -112,7 +85,7 @@ export function mapStore(store: ManifestStore, trust_list_version: string): C2pa
     ingredients: active?.ingredients ?? [],
     ai_assertion: extractAiAssertion(active, actions),
     failure_reason: failureFromStatus(status, state),
-    trust_list_version: recordedTrust,
+    trust_list_version,
   };
 }
 

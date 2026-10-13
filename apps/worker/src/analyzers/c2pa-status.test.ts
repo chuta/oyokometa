@@ -44,6 +44,29 @@ describe("C2PA 2.3 status mapping (AN-25)", () => {
     expect(stateFromStatus([], true, "Invalid")).toBe("invalid");
   });
 
+  it("maps Invalid caused only by an untrusted signer to valid_signer_not_recognised", () => {
+    expect(
+      stateFromStatus(
+        [
+          { code: "claimSignature.validated", success: true },
+          { code: "signingCredential.untrusted", success: false, explanation: "signing certificate untrusted" },
+        ],
+        true,
+        "Invalid",
+      ),
+    ).toBe("valid_signer_not_recognised");
+  });
+
+  it("keeps Invalid when a content binding also failed", () => {
+    expect(
+      stateFromStatus(
+        [{ code: "signingCredential.untrusted" }, { code: "assertion.dataHash.mismatch" }],
+        true,
+        "Invalid",
+      ),
+    ).toBe("invalid");
+  });
+
   it("extracts signer, generator, actions and digitalSourceType from a store", () => {
     const r = mapStore(
       {

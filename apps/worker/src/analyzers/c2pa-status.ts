@@ -48,7 +48,18 @@ export function stateFromStatus(
   if (!hasActiveManifest) return "not_detected";
   if (validationState === "Trusted") return "verified_and_trusted";
   if (validationState === "Valid") return "valid_signer_not_recognised";
-  if (validationState === "Invalid") return "invalid";
+  if (validationState === "Invalid") {
+    const codes = codesOf(status);
+    const bindingFailed = codes.some((c) =>
+      (BINDING_OR_SIGNATURE_FAILURE as readonly string[]).includes(c),
+    );
+    // The SDK reports Invalid when verifyTrust is on and the signer is simply
+    // absent from the loaded anchors. That is not a broken content binding.
+    if (!bindingFailed && codes.includes("signingCredential.untrusted")) {
+      return "valid_signer_not_recognised";
+    }
+    return "invalid";
+  }
   const codes = codesOf(status);
   if (codes.some((c) => (BINDING_OR_SIGNATURE_FAILURE as readonly string[]).includes(c))) {
     return "invalid";
