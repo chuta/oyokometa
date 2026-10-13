@@ -19,6 +19,9 @@ export function SiteFooter() {
           <a href="/dispute-policy">Disputes</a>
           <a href="/abuse">Report abuse</a>
         </nav>
+        <p className="footer-legal">
+          Oyokometa is a product of Blockspace Technologies Limited. © 2026 All rights reserved.
+        </p>
       </div>
     </footer>
   );

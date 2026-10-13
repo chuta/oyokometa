@@ -1330,6 +1330,13 @@ textarea {
   color: var(--ink);
 }
 
+.footer-legal {
+  flex-basis: 100%;
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .pack-grid {
   display: grid;
   gap: 1rem;
