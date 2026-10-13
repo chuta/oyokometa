@@ -158,6 +158,7 @@ export function buildFindingsObject(input: {
   gps_present: boolean;
   ai_labels_enabled: boolean;
   ai_unavailable?: boolean;
+  manipulation_check?: FindingsObject["manipulation_check"];
 }): FindingsObject {
   const { executive, supporting } = evaluateRules(input.items);
   const editing =
@@ -262,6 +263,7 @@ export function buildFindingsObject(input: {
     gps_revealed: false,
     gps: null,
     ai_labels_enabled: input.ai_labels_enabled,
+    manipulation_check: input.manipulation_check ?? null,
     limitations: LIMITATIONS,
     what_this_does_not_establish: WHAT_NOT,
   };

@@ -915,6 +915,13 @@ textarea {
   font-size: 1.05rem;
 }
 
+.report-ai-status {
+  margin: 0.15rem 0 0;
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
 .report-exec p,
 .report-ai p {
   margin: 0.35rem 0 0;

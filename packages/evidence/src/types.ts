@@ -1,3 +1,5 @@
+import type { ManipulationCheck } from "./manipulation.js";
+
 export type TruthTier = "verified" | "detected" | "inferred" | "declared";
 export type Strength =
   | "very_strong"
@@ -98,6 +100,7 @@ export type FindingsObject = {
   gps_revealed: boolean;
   gps: { lat: number; lng: number } | null;
   ai_labels_enabled: boolean;
+  manipulation_check?: ManipulationCheck | null;
   limitations: string;
   what_this_does_not_establish: string;
 };

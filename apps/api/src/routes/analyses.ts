@@ -17,6 +17,7 @@ import { notFound } from "../session.js";
 import { audit } from "../audit.js";
 import { purgeAssetBytes, purgeJob } from "../purge.js";
 import { priceChangedResponse, priceConfirmed } from "../price-check.js";
+import { manipulationCheckFromRaw, type FindingsObject } from "@oyokometa/evidence";
 
 const ERROR_MESSAGES = {
   unsupported_type: "This file type is not supported. Use JPEG, PNG, WebP, HEIC/HEIF or TIFF.",
@@ -152,6 +153,9 @@ analysisRoutes.get("/analyses/:id", async (c) => {
     .limit(1);
   if (!job) return notFound(c);
   const [asset] = await db.select().from(assets).where(eq(assets.id, job.assetId)).limit(1);
+  const raw = job.findings
+    ? await db.select().from(rawOutputs).where(eq(rawOutputs.jobId, job.id))
+    : [];
   const payload: Record<string, unknown> = {
     id: job.id,
     status: job.status,
@@ -161,7 +165,7 @@ analysisRoutes.get("/analyses/:id", async (c) => {
     error_message: job.errorCode
       ? ERROR_MESSAGES[job.errorCode as keyof typeof ERROR_MESSAGES] ?? job.errorMessage
       : null,
-    findings: job.findings,
+    findings: attachManipulationCheck(job.findings, raw.map((row) => row.payload)),
     preview_url: asset?.previewKey ? `/api/v1/previews/${asset.id}` : null,
     created_at: job.createdAt,
     completed_at: job.completedAt,
@@ -305,3 +309,12 @@ analysisRoutes.post("/analyses/:id/upgrade", async (c) => {
   await enqueueAnalysis(deep.id);
   return c.json({ id: deep.id, status: deep.status, stage: deep.stage }, 201);
 });
+
+function attachManipulationCheck(findings: unknown, payloads: unknown[]) {
+  if (!findings || typeof findings !== "object") return findings;
+  const current = findings as FindingsObject;
+  if (current.manipulation_check) return current;
+  const check = payloads.map((payload) => manipulationCheckFromRaw(payload)).find((item) => item) ?? null;
+  if (!check) return current;
+  return { ...current, manipulation_check: check };
+}

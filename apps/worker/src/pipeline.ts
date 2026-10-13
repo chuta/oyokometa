@@ -22,6 +22,7 @@ import { buildTimeline, TIMESTAMP_PRODUCER } from "./analyzers/timestamps.js";
 import { analyzeStructure, STRUCTURE_PRODUCER } from "./analyzers/structure.js";
 import { analyzeC2pa, C2PA_PRODUCER } from "./analyzers/c2pa.js";
 import { mapScore, runDetectors, shouldReleaseDeepHold, DETECTOR_PRODUCER } from "./analyzers/detectors.js";
+import { manipulationCheckFromRaw } from "@oyokometa/evidence";
 import { MALWARE_PRODUCER, scanMalware } from "./analyzers/malware.js";
 import { ev } from "./evidence-factory.js";
 
@@ -431,6 +432,9 @@ export async function runPipeline(jobId: string): Promise<void> {
     const tier = job.tier === "deep" ? "deep" : "quick";
     const detectorRuns = await runDetectors(buf, tier);
     const aiUnavailable = shouldReleaseDeepHold(tier, detectorRuns);
+    const manipulationCheck = detectorRuns
+      .map((run) => (run.result ? manipulationCheckFromRaw(run.result) : null))
+      .find((check) => check) ?? null;
     for (const run of detectorRuns) {
       await db.insert(rawOutputs).values({
         jobId,
@@ -509,6 +513,7 @@ export async function runPipeline(jobId: string): Promise<void> {
       gps_present: Boolean(meta.gps),
       ai_labels_enabled: Boolean(aiLabelsEnabled),
       ai_unavailable: aiUnavailable,
+      manipulation_check: manipulationCheck,
     });
 
     if (items.length) {
