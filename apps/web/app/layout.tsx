@@ -1,26 +1,32 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { PRODUCT_NAME, TRUST_LINE } from "@oyokometa/config";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
-const outfit = Outfit({
-  subsets: ["latin"],
+const outfit = localFont({
+  src: "../fonts/outfit-latin.woff2",
+  weight: "100 900",
   variable: "--font-outfit",
   display: "swap",
 });
 
-const plex = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const plex = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-sans-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-latin-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-latin-600.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex",
   display: "swap",
 });
 
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const mono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-mono-latin-500.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-mono",
   display: "swap",
 });
