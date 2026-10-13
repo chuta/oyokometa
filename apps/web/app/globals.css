@@ -871,6 +871,21 @@ textarea {
   margin: 0.15rem 0 0;
 }
 
+.record-qr {
+  margin-top: 0.85rem;
+}
+
+.record-qr svg {
+  display: block;
+  width: 8.5rem;
+  height: auto;
+  background: #fff;
+}
+
+.report-row.is-static {
+  cursor: default;
+}
+
 .report-delete {
   display: block;
   margin: 0.85rem auto 0.2rem;
@@ -955,29 +970,36 @@ textarea {
 }
 
 .report-stats button,
+.report-stats > div,
 .report-tabs button,
 .report-row,
 .report-delete {
   font-family: inherit;
 }
 
-.report-stats button {
+.report-stats button,
+.report-stats > div {
   text-align: left;
   background: var(--surface);
   color: inherit;
   border: 1px solid var(--line);
   padding: 0.85rem;
+}
+
+.report-stats button {
   cursor: pointer;
 }
 
-.report-stats button span {
+.report-stats button span,
+.report-stats > div > span {
   display: block;
   color: var(--muted);
   font-size: 0.8rem;
   margin-bottom: 0.35rem;
 }
 
-.report-stats button strong {
+.report-stats button strong,
+.report-stats > div strong {
   font-family: var(--font-outfit), sans-serif;
   font-size: 1rem;
   font-weight: 600;
@@ -1010,7 +1032,8 @@ textarea {
   padding: 1rem 0 0.25rem;
 }
 
-.report-rows h3 {
+.report-rows h3,
+.report-panel h3 {
   margin: 0 0 0.75rem;
   font-size: 1.15rem;
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TierTag } from "@oyokometa/findings-ui";
 import { VerifyForm } from "./VerifyForm";
 
 type View = {
   public_id: string;
+  asset_sha256?: string;
   status: string;
   mime_type: string | null;
   dimensions: string | null;
@@ -42,6 +42,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
   const [view, setView] = useState<View | null>(null);
   const [missing, setMissing] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [details, setDetails] = useState(false);
 
   useEffect(() => {
     fetch(`/api/v1/verify/${publicId}`, { credentials: "include" })
@@ -98,141 +99,257 @@ export function PublicRecord({ publicId }: { publicId: string }) {
     window.location.reload();
   };
 
+  const declarations = Object.entries(view.declarations ?? {}).filter(([, v]) => v);
+  const headline = view.record_problem?.headline ?? "Registered record";
+  const fileTitle = view.display_name || "Registered file";
+
   return (
-    <div className="page">
-      {view.record_problem ? (
-        <>
-          <h1 className="text-3xl mb-2">{view.record_problem.headline}</h1>
-          <p className="mb-6">{view.record_problem.sub_line}</p>
-        </>
-      ) : (
-        <h1 className="text-3xl mb-2">Registered record</h1>
-      )}
-      {withdrawn ? (
-        <p className="mb-4">
-          Withdrawn on{" "}
-          {(view.events.find((e) => e.type === "WITHDRAWN")?.created_at ?? view.registered_at).slice(0, 10)}.
-          The hash and event history remain. Thumbnail and declarations were removed.
-        </p>
-      ) : null}
-      {view.duplicate_note ? <p className="mb-4">{view.duplicate_note}</p> : null}
-      {view.thumbnail_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={view.thumbnail_url} alt="" className="max-w-xs mb-6" />
-      ) : null}
-      <dl className="text-sm space-y-2 mb-6">
-        <div>
-          <dt className="text-muted">Format</dt>
-          <dd>{view.mime_type ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">Dimensions</dt>
-          <dd>{view.dimensions ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">Size</dt>
-          <dd>{view.byte_size ?? "—"} bytes</dd>
-        </div>
-        <div>
-          <dt className="text-muted">Registration time (UTC)</dt>
-          <dd>{view.registered_at}</dd>
-        </div>
-        {view.display_name ? (
-          <div>
-            <dt className="text-muted">Registrant display name</dt>
-            <dd>{view.display_name}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt className="text-muted">Signature</dt>
-          <dd>
-            {view.signature_status} · key {view.signing_key_id}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-muted">Timestamp</dt>
-          <dd>{view.timestamp_note}</dd>
-        </div>
-        <div>
-          <dt className="text-muted">Credential type</dt>
-          <dd>{view.credential_type}</dd>
-        </div>
-      </dl>
-      {Object.keys(view.declarations ?? {}).length ? (
-        <section className="mb-6">
-          <h2 className="text-xl mb-2">Declarations</h2>
-          <ul>
-            {Object.entries(view.declarations).map(([k, v]) =>
-              v ? (
-                <li key={k} className="mb-2">
-                  <TierTag tier="declared" /> {FIELD_LABEL[k] ?? k}: {v}
-                </li>
-              ) : null,
-            )}
-          </ul>
-        </section>
-      ) : null}
-      {view.contradictions?.length ? (
-        <section className="mb-6">
-          <h2 className="text-xl mb-2">Declaration differs from detected evidence</h2>
-          <ul>
-            {view.contradictions.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <section className="mb-6">
-        <h2 className="text-xl mb-2">Events</h2>
-        <ol className="timeline">
-          {view.events.map((e, i) => (
-            <li key={i}>
-              {e.type} · {e.created_at}
-            </li>
-          ))}
-        </ol>
-      </section>
-      <div
-        className="mb-6 max-w-[10rem]"
-        dangerouslySetInnerHTML={{ __html: view.qr_svg }}
-      />
-      <p className="mb-8">
-        <a className="btn" href="/verify">
-          Check your own image
-        </a>
+    <div className="page report-page">
+      <p className="report-crumb">
+        <a href="/verify">Verify</a>
+        <span aria-hidden="true"> / </span>
+        Record
       </p>
-      <h2 className="text-xl mb-2">Compare a file to this record</h2>
-      <VerifyForm publicId={publicId} />
-      {view.is_registrant && !withdrawn ? (
-        <p className="mt-8">
-          <button className="btn-secondary btn" type="button" disabled={withdrawing} onClick={withdraw}>
-            Withdraw this record
-          </button>
-        </p>
-      ) : null}
-      {!withdrawn && view.status !== "disputed" ? (
-        <form className="mt-10" onSubmit={dispute}>
-          <h2 className="text-xl mb-2">Dispute</h2>
-          <p className="text-sm text-muted mb-2">
-            Email-verified complaints on public records. This is not a determination of ownership.
+      <article className="report">
+        <header className="report-heading">
+          <h1>{headline}</h1>
+          <p>
+            Registered {formatWhen(view.registered_at)}
+            <span className="report-complete">{statusLabel(view)}</span>
           </p>
-          <input className="block w-full border border-line p-2 mb-2" name="email" type="email" required placeholder="Email" />
-          <textarea
-            className="block w-full border border-line p-2 mb-2"
-            name="reason"
-            required
-            minLength={20}
-            placeholder="Why this registration should be reviewed"
-          />
-          <button className="btn" type="submit">
-            File a dispute
-          </button>
-        </form>
-      ) : null}
-      <p className="mt-8 text-sm">{view.standing_line}</p>
-      <p className="text-sm">
-        <a href="/abuse">Report abuse</a>
-      </p>
+        </header>
+        {view.record_problem ? <p className="mb-4">{view.record_problem.sub_line}</p> : null}
+        {withdrawn ? (
+          <p className="mb-4">
+            Withdrawn on {formatWhen(view.events.find((e) => e.type === "WITHDRAWN")?.created_at ?? view.registered_at)}.
+            The hash and event history remain. Thumbnail and declarations were removed.
+          </p>
+        ) : null}
+        {view.duplicate_note ? <p className="mb-4">{view.duplicate_note}</p> : null}
+
+        <div className="report-grid">
+          <aside className="report-file">
+            {view.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="report-preview" src={view.thumbnail_url} alt="Metadata-stripped preview of the registered file" />
+            ) : (
+              <p className="report-preview report-preview-empty">No public preview for this file.</p>
+            )}
+            <div className="report-file-id">
+              <div>
+                <strong>{fileTitle}</strong>
+                <span>
+                  {typeLabel(view.mime_type)} · {formatBytes(view.byte_size)}
+                  {view.dimensions ? ` · ${view.dimensions}` : ""}
+                </span>
+              </div>
+            </div>
+            <dl className="report-props">
+              <div>
+                <dt>File type</dt>
+                <dd>{typeLabel(view.mime_type)}</dd>
+              </div>
+              <div>
+                <dt>Size</dt>
+                <dd>{formatBytes(view.byte_size)}</dd>
+              </div>
+              <div>
+                <dt>Dimensions</dt>
+                <dd>{view.dimensions ?? "Not recorded"}</dd>
+              </div>
+            </dl>
+            <button className="btn report-details-btn" type="button" aria-expanded={details} onClick={() => setDetails((v) => !v)}>
+              {details ? "Hide file details" : "View file details"}
+            </button>
+            {details ? (
+              <dl className="report-more mono">
+                <dt>Public id</dt>
+                <dd>{view.public_id}</dd>
+                {view.asset_sha256 ? (
+                  <>
+                    <dt>SHA-256</dt>
+                    <dd>{view.asset_sha256}</dd>
+                  </>
+                ) : null}
+                <dt>Signing key</dt>
+                <dd>{view.signing_key_id}</dd>
+              </dl>
+            ) : null}
+            <div className="record-qr" dangerouslySetInnerHTML={{ __html: view.qr_svg }} />
+            {view.is_registrant && !withdrawn ? (
+              <button className="report-delete" type="button" disabled={withdrawing} onClick={withdraw}>
+                {withdrawing ? "Withdrawing…" : "Withdraw this record"}
+              </button>
+            ) : null}
+          </aside>
+
+          <div className="report-main">
+            <div className="report-exec-row">
+              <section className="report-exec" aria-labelledby="record-title">
+                <h2 id="record-title">Registration time</h2>
+                <p className="report-ai-status">{formatWhen(view.registered_at)}</p>
+                <p>Set by the Oyokometa server. It is not a creation date declared by the registrant.</p>
+              </section>
+              <aside className="report-ai" aria-label="Declarations">
+                <h2>Declarations</h2>
+                <p className="report-ai-status">{declarations.length ? `${declarations.length} stated` : "None stated"}</p>
+                <p>Statements by the registrant. They are not checked against the file.</p>
+              </aside>
+            </div>
+
+            <div className="report-stats">
+              <div>
+                <span>Signature</span>
+                <strong>{signatureLabel(view.signature_status)}</strong>
+              </div>
+              <div>
+                <span>Timestamp</span>
+                <strong>{view.timestamp_note.includes("independent") ? "Independent token" : "Platform clock"}</strong>
+              </div>
+              <div>
+                <span>Credential</span>
+                <strong>{credentialLabel(view.credential_type)}</strong>
+              </div>
+              <div>
+                <span>Events</span>
+                <strong>{view.events.length === 1 ? "1 recorded" : `${view.events.length} recorded`}</strong>
+              </div>
+            </div>
+
+            <section className="report-panel">
+              <div className="report-rows">
+                <h3>Declared by the registrant</h3>
+                {declarations.length === 0 ? <p>No declarations were stored with this record.</p> : null}
+                {declarations.map(([key, value]) => (
+                  <div className="report-row is-static" key={key}>
+                    <span>
+                      <strong>{FIELD_LABEL[key] ?? key}</strong>
+                      <em>Declared</em>
+                      <small>{declarationValue(key, value)}</small>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {view.contradictions?.length ? (
+              <section className="report-panel">
+                <h3>Declaration differs from detected evidence</h3>
+                <ul className="report-evidence">
+                  {view.contradictions.map((n) => (
+                    <li key={n}>{n}</li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <section className="report-panel">
+              <h3>Events</h3>
+              <ul className="report-evidence">
+                {view.events.map((e, i) => (
+                  <li key={`${e.type}-${i}`}>
+                    <strong>{eventLabel(e.type)}</strong> <span>{formatWhen(e.created_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="report-panel">
+              <h3>Compare a file to this record</h3>
+              <VerifyForm publicId={publicId} />
+            </section>
+
+            {!withdrawn && view.status !== "disputed" ? (
+              <form className="report-panel" onSubmit={dispute}>
+                <h3>Dispute</h3>
+                <p className="text-sm text-muted mb-2">
+                  Email-verified complaints on public records. This is not a determination of ownership.
+                </p>
+                <input className="block w-full border border-line p-2 mb-2" name="email" type="email" required placeholder="Email" />
+                <textarea
+                  className="block w-full border border-line p-2 mb-2"
+                  name="reason"
+                  required
+                  minLength={20}
+                  placeholder="Why this registration should be reviewed"
+                />
+                <button className="btn" type="submit">
+                  File a dispute
+                </button>
+              </form>
+            ) : null}
+
+            <p className="mt-8 text-sm">{view.standing_line}</p>
+            <p className="text-sm">
+              <a href="/abuse">Report abuse</a>
+            </p>
+          </div>
+        </div>
+      </article>
     </div>
   );
+}
+
+function statusLabel(view: View) {
+  if (view.status === "withdrawn") return "Withdrawn";
+  if (view.status === "disputed") return "Disputed";
+  if (view.signature_status === "valid") return "Signature valid";
+  return "Check failed";
+}
+
+function signatureLabel(status: string) {
+  if (status === "valid") return "Valid";
+  if (status === "withdrawn") return "Withdrawn";
+  if (status === "disputed") return "Disputed";
+  return "Did not validate";
+}
+
+function credentialLabel(type: string) {
+  if (type === "platform_signed_record") return "Platform-signed record";
+  return type.replaceAll("_", " ");
+}
+
+function eventLabel(type: string) {
+  if (type === "REGISTERED") return "Registered";
+  if (type === "WITHDRAWN") return "Withdrawn";
+  return type.replaceAll("_", " ");
+}
+
+function declarationValue(key: string, value: string) {
+  if (key !== "ai_use") return value;
+  if (value === "none") return "None";
+  if (value === "ai_assisted") return "AI-assisted";
+  if (value === "ai_generated") return "AI-generated";
+  return value;
+}
+
+function typeLabel(mime: string | null) {
+  if (mime === "image/jpeg") return "JPEG";
+  if (mime === "image/png") return "PNG";
+  if (mime === "image/webp") return "WebP";
+  if (mime === "image/tiff") return "TIFF";
+  if (mime === "image/heic" || mime === "image/heif") return "HEIC";
+  return mime ?? "Not recorded";
+}
+
+function formatBytes(bytes: number | null) {
+  if (bytes == null) return "Not recorded";
+  if (bytes < 1024) return `${bytes} bytes`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatWhen(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const formatted = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    hourCycle: "h23",
+  }).format(date);
+  return `${formatted} UTC`;
 }

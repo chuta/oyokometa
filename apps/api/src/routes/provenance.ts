@@ -670,6 +670,7 @@ async function publicRecordView(publicId: string, userId: string | null) {
   const canonical = JSON.parse(row.canonicalJson) as { contradictions?: string[] };
   return {
     public_id: row.publicId,
+    asset_sha256: row.assetSha256,
     credential_type: row.credentialType,
     status: row.status,
     visibility: row.visibility,
