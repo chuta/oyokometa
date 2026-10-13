@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CREDIT_DEFAULTS } from "@oyokometa/config";
 
 type Product = {
   id: string;
@@ -23,7 +24,7 @@ export default function PricingPage() {
       <p className="kicker">Pricing</p>
       <h1 className="text-4xl mb-4">Credits, not a paywall on facts</h1>
       <p className="text-muted mb-8 max-w-2xl">
-        Quick Scan is free. New accounts start with 10 credits. Deep Analysis and reports spend
+        Quick Scan is free. New accounts start with {CREDIT_DEFAULTS.signupBonus} credits. Deep Analysis and reports spend
         credits.
       </p>
       <ul className="pack-grid mb-10">
