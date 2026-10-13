@@ -13,7 +13,8 @@ export default function PrivacyPage() {
         <li>
           Deep Analysis sends the image to Sightengine for an AI-image score and a face-manipulation score.
           Sightengine deletes the file after processing. Oyokometa does not submit images to Sightengine&apos;s
-          training feedback. Quick Scan is scored on Oyokometa&apos;s own server and is not sent to Sightengine.
+          training feedback. Deep Analysis also sends the image to Reality Defender for a manipulation
+          score. Quick Scan is scored on Oyokometa&apos;s own server and is not sent to either provider.
         </li>
         <li>Delete now removes the image, previews, evidence record and reports from primary storage within minutes.</li>
       </ul>

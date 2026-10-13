@@ -440,7 +440,7 @@ export async function runPipeline(jobId: string): Promise<void> {
       // Labels stay off until the gate. A failed external check also adds no detector evidence,
       // so one vendor cannot decide the result on its own.
       if (!aiLabelsEnabled || aiUnavailable || !run.result) continue;
-      const band = mapScore(run.result.raw_score);
+      const band = run.result.band ?? mapScore(run.result.raw_score);
       if (band !== "none") {
         items.push(
           ev({

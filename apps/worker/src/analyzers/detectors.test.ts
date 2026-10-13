@@ -63,6 +63,18 @@ describe("detectorsForTier", () => {
     expect(deep[1]?.releasesHoldOnFailure).toBe(true);
     expect(detectorsForTier("quick", env)).toHaveLength(1);
   });
+
+  it("adds Reality Defender on Deep Analysis only, without releasing the hold", () => {
+    const env = {
+      DETECTOR_URL: "http://detector.internal:8080",
+      REALITYDEFENDER_API_KEY: "rd_test",
+      NODE_ENV: "production",
+    } as NodeJS.ProcessEnv;
+    const deep = detectorsForTier("deep", env);
+    expect(deep).toHaveLength(2);
+    expect(deep[1]?.releasesHoldOnFailure).toBe(false);
+    expect(detectorsForTier("quick", env)).toHaveLength(1);
+  });
 });
 
 describe("shouldReleaseDeepHold", () => {

@@ -1,4 +1,5 @@
 import { DETECTOR_THRESHOLDS, DETECTOR_TIMEOUT_MS } from "@oyokometa/config";
+import { RealityDefenderDetector } from "./realitydefender.js";
 
 export const DETECTOR_PRODUCER = "detector-adapter@1.0.0";
 
@@ -10,10 +11,17 @@ const VENDOR_MODEL_VERSION = "genai-deepfake";
 export type DetectorResult = {
   label: "synthetic" | "camera" | "unknown";
   raw_score: number;
+  /** Set when the detector's own bands differ from the shared 0–1 thresholds. */
+  band?: "none" | "weak" | "strong";
   model_id: string;
   model_version: string;
   /** Face-swap score from the same vendor call. Not a second independent detector. */
   face_manipulation_score: number | null;
+  request_id?: string;
+  status?: string;
+  not_applicable_reason?: string | null;
+  models_disagree?: boolean;
+  rendition?: boolean;
 };
 
 export interface Detector {
@@ -150,6 +158,9 @@ export function detectorsForTier(tier: "quick" | "deep", env: NodeJS.ProcessEnv 
   }
   if (tier === "deep" && env.SIGHTENGINE_API_USER && env.SIGHTENGINE_API_SECRET) {
     list.push(new SightengineDetector(env.SIGHTENGINE_API_USER, env.SIGHTENGINE_API_SECRET));
+  }
+  if (tier === "deep" && env.REALITYDEFENDER_API_KEY?.trim()) {
+    list.push(new RealityDefenderDetector(env.REALITYDEFENDER_API_KEY.trim()));
   }
   return list;
 }
