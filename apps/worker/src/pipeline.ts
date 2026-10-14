@@ -24,6 +24,7 @@ import { analyzeC2pa, C2PA_PRODUCER } from "./analyzers/c2pa.js";
 import { mapScore, runDetectors, shouldReleaseDeepHold, DETECTOR_PRODUCER } from "./analyzers/detectors.js";
 import { manipulationCheckFromRaw } from "@oyokometa/evidence";
 import { MALWARE_PRODUCER, scanMalware } from "./analyzers/malware.js";
+import { CONTENT_POLICY_PRODUCER, moderateAdultContent } from "./analyzers/moderation.js";
 import { ev } from "./evidence-factory.js";
 
 const DECODE_PRODUCER = "decode-worker@1.0.0";
@@ -73,6 +74,7 @@ export async function runPipeline(jobId: string): Promise<void> {
     c2pa: C2PA_PRODUCER,
     detector: DETECTOR_PRODUCER,
     malware: MALWARE_PRODUCER,
+    content_policy: CONTENT_POLICY_PRODUCER,
   };
 
   try {
@@ -117,6 +119,24 @@ export async function runPipeline(jobId: string): Promise<void> {
         setTimeout(() => rej(Object.assign(new Error("timeout"), { code: "timeout" })), 30_000),
       ),
     ]);
+
+    try {
+      await moderateAdultContent(decode.previewJpeg);
+      await db.insert(rawOutputs).values({
+        jobId,
+        producer: CONTENT_POLICY_PRODUCER,
+        payload: { decision: "accepted" },
+      });
+    } catch (err) {
+      if (failCode(err).code === "content_refused") {
+        await db.insert(rawOutputs).values({
+          jobId,
+          producer: CONTENT_POLICY_PRODUCER,
+          payload: { decision: "refused" },
+        });
+      }
+      throw err;
+    }
 
     const hash = sha256(buf);
     const phash = await perceptualHash(buf);
@@ -575,7 +595,7 @@ export async function runPipeline(jobId: string): Promise<void> {
       })
       .where(eq(analysisJobs.id, jobId));
     if (job.creditHoldId) await releaseHold(jobId, "worker");
-    if (code === "malware_flagged") {
+    if (code === "malware_flagged" || code === "content_refused") {
       await removeBlob(asset.storageKey).catch(() => undefined);
     }
   }

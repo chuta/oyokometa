@@ -24,6 +24,7 @@ const ERROR_MESSAGES = {
   too_large: "This file exceeds the size or dimension limit.",
   corrupt: "This file could not be decoded.",
   malware_flagged: "This file was flagged by malware scanning and was not analyzed.",
+  content_refused: "This file can't be accepted.",
   timeout: "Analysis timed out. You were not charged.",
   service_unavailable: "The service is temporarily unavailable.",
 } as const satisfies Record<string, string>;

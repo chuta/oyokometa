@@ -61,6 +61,7 @@ export const ERROR_CODES = {
   too_large: "too_large",
   corrupt: "corrupt",
   malware_flagged: "malware_flagged",
+  content_refused: "content_refused",
   timeout: "timeout",
   service_unavailable: "service_unavailable",
   not_found: "not_found",
