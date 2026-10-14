@@ -1,7 +1,7 @@
 export default function RegistrationTermsPage() {
   return (
-    <article className="page page-narrow">
-      <h1 className="text-3xl mb-4">Registration terms</h1>
+    <article className="page doc-page">
+      <h1>Registration terms</h1>
       <p>
         By registering a file you state that you have the right to register it. The signed record
         means only that this account registered these exact bytes no later than the recorded time.

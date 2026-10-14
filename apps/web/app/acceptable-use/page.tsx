@@ -1,7 +1,7 @@
 export default function AupPage() {
   return (
-    <article className="page page-narrow">
-      <h1 className="text-3xl mb-4">Acceptable use</h1>
+    <article className="page doc-page">
+      <h1>Acceptable use</h1>
       <p>
         Do not upload illegal content or sexual content. Nudity and sexual activity are not accepted.
         Suspected child sexual abuse material is quarantined, not

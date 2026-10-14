@@ -1,7 +1,7 @@
 export default function DisputePolicyPage() {
   return (
-    <article className="page page-narrow">
-      <h1 className="text-3xl mb-4">Dispute and takedown</h1>
+    <article className="page doc-page">
+      <h1>Dispute and takedown</h1>
       <p>
         Anyone can file a complaint on a public registration. We send a confirmation link to the
         address you give. A facially valid complaint marks the record Disputed pending review,

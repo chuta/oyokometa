@@ -1913,22 +1913,46 @@ summary {
 }
 
 .about-hero h1,
+.about-section h2,
+.doc-page > h1 {
+  max-width: none;
+  line-height: 1.15;
+}
+
+.about-hero h1,
+.doc-page > h1 {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  margin: 0.35rem 0 1rem;
+}
+
 .about-section h2 {
-  max-width: 18em;
+  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+  margin: 0 0 0.85rem;
 }
 
 .about-hero .lede,
+.about-hero p,
 .about-section p,
 .method-list,
 .audience-list,
-.reason-list {
-  max-width: 42rem;
+.reason-list,
+.doc-page p,
+.doc-page ul,
+.doc-page ol {
+  max-width: none;
 }
 
-.request-hero h1,
-.request-hero .lede,
-.request-hero p {
-  max-width: none;
+@media (min-width: 721px) {
+  .about-hero .hero-actions,
+  .about-section .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .about-hero .hero-actions .btn,
+  .about-section .hero-actions .btn {
+    width: auto;
+  }
 }
 
 .about-section {

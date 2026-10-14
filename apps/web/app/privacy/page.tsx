@@ -1,7 +1,7 @@
 export default function PrivacyPage() {
   return (
-    <article className="page page-narrow">
-      <h1 className="text-3xl mb-4">Privacy notice</h1>
+    <article className="page doc-page">
+      <h1>Privacy notice</h1>
       <p>
         This is a draft notice for Release 1. Counsel must confirm the data controller, hosting
         region, and NDPA 2023 / GDPR basis before public launch.
