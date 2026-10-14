@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VerifyForm } from "./VerifyForm";
 
 type View = {
@@ -44,6 +44,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
   const [missing, setMissing] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [details, setDetails] = useState(false);
+  const [notice, setNotice] = useState<{ title: string; body: string } | null>(null);
 
   useEffect(() => {
     fetch(`/api/v1/verify/${publicId}`, { credentials: "include" })
@@ -82,15 +83,22 @@ export function PublicRecord({ publicId }: { publicId: string }) {
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) {
-      alert(
-        j.error?.code === "not_found"
-          ? "Disputes can be filed on public records."
-          : (j.error?.message ?? "The complaint could not be filed."),
-      );
+      setNotice({
+        title: "Complaint not filed",
+        body:
+          j.error?.code === "not_found"
+            ? "Disputes can be filed on public records."
+            : (j.error?.message ?? "The complaint could not be filed."),
+      });
       return;
     }
     if (j.dev_link) window.location.href = j.dev_link;
-    else alert("Check your email to confirm the complaint.");
+    else {
+      setNotice({
+        title: "Check your email",
+        body: "A confirmation link is on its way. Open it to file the complaint.",
+      });
+    }
   };
 
   const withdraw = async () => {
@@ -295,7 +303,52 @@ export function PublicRecord({ publicId }: { publicId: string }) {
           </div>
         </div>
       </article>
+      <NoticeDialog notice={notice} onClose={() => setNotice(null)} />
     </div>
+  );
+}
+
+function NoticeDialog({
+  notice,
+  onClose,
+}: {
+  notice: { title: string; body: string } | null;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const last = useRef(notice);
+  if (notice) last.current = notice;
+  const content = notice ?? last.current;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (notice && !el.open) {
+      el.showModal();
+      el.querySelector("button")?.focus();
+    }
+    if (!notice && el.open) el.close();
+  }, [notice]);
+  return (
+    <dialog
+      ref={ref}
+      className="notice"
+      aria-labelledby="notice-title"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {content ? (
+        <>
+          <p className="notice-mark">Oyokometa</p>
+          <h2 id="notice-title">{content.title}</h2>
+          <p>{content.body}</p>
+          <button className="btn" type="button" onClick={onClose}>
+            OK
+          </button>
+        </>
+      ) : null}
+    </dialog>
   );
 }
 

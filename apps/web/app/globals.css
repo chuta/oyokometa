@@ -871,6 +871,43 @@ textarea {
   margin: 0.15rem 0 0;
 }
 
+.notice {
+  width: min(26rem, calc(100vw - 2rem));
+  margin: auto;
+  padding: 1.35rem 1.4rem 1.2rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--brand);
+}
+
+.notice::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.notice-mark {
+  margin: 0 0 0.65rem;
+  color: var(--brand);
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.notice h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.45rem;
+}
+
+.notice p:not(.notice-mark) {
+  margin: 0 0 1.15rem;
+  color: var(--muted);
+}
+
+.notice .btn {
+  width: 100%;
+  text-align: center;
+}
+
 .record-qr {
   margin-top: 0.85rem;
 }
