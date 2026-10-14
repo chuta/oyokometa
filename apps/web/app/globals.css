@@ -149,7 +149,7 @@ a {
   min-width: 2.75rem;
 }
 
-@media (min-width: 980px) {
+@media (min-width: 1200px) {
   .nav-desktop,
   .nav-meta {
     display: flex;
@@ -1791,5 +1791,186 @@ summary {
   .copy-field {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+.nav-cta {
+  width: auto;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.4rem 0.75rem;
+}
+
+.about-page {
+  max-width: 1120px;
+}
+
+.about-hero h1,
+.about-section h2 {
+  max-width: 18em;
+}
+
+.about-hero .lede,
+.about-section p,
+.method-list,
+.audience-list,
+.reason-list {
+  max-width: 42rem;
+}
+
+.about-section {
+  margin-top: 3rem;
+}
+
+.service-grid,
+.platform-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.service-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.service-card h3,
+.service-card p,
+.service-card ul {
+  margin: 0;
+}
+
+.service-card ul {
+  padding-left: 1.1rem;
+}
+
+.service-card .btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.method-list,
+.reason-list,
+.audience-list {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0;
+  list-style: none;
+}
+
+.audience-list li {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.audience-list span {
+  color: var(--muted);
+}
+
+.intake fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+
+.intake legend {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-size: 1.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.intake label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.intake-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.choice-grid {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.choice {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0.75rem;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--brand);
+}
+
+.choice input {
+  margin-top: 0.2rem;
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.stepper button {
+  font: inherit;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+}
+
+.stepper button[aria-current="step"] {
+  color: #111;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.stepper button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.intake-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (min-width: 800px) {
+  .service-grid,
+  .platform-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .intake-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .nav-cta,
+  .intake-actions .btn,
+  .service-card .btn {
+    width: auto;
+  }
+  .intake-actions .btn,
+  .service-card .btn {
+    width: 100%;
+    text-align: center;
   }
 }

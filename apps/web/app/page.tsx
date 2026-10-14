@@ -154,7 +154,7 @@ const audiences = [
   {
     audience: "Enterprises: banks, insurers, marketplaces, platforms",
     need: "Image checks at volume, inside their own systems",
-    action: "Verify a file",
-    href: "/verify",
+    action: "Request a solution",
+    href: "/request-solution",
   },
 ] as const;

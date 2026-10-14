@@ -32,6 +32,7 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://oyokometa.xyz"),
   title: PRODUCT_NAME,
   description: TRUST_LINE,
   icons: {

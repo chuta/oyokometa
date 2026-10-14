@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SOLUTION_STATUSES } from "@oyokometa/config";
 
 function PaymentLine({ p }: { p: Record<string, unknown> }) {
   return (
@@ -19,6 +20,8 @@ export default function AdminPage() {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<Array<Record<string, unknown>>>([]);
   const [disputes, setDisputes] = useState<Array<Record<string, unknown>>>([]);
+  const [solutions, setSolutions] = useState<Array<Record<string, unknown>>>([]);
+  const [solutionCounts, setSolutionCounts] = useState<{ by_status?: Record<string, number>; by_service?: Record<string, number> }>({});
 
   const load = () => {
     fetch("/api/v1/admin/payments", { credentials: "include" })
@@ -30,6 +33,12 @@ export default function AdminPage() {
     fetch("/api/v1/admin/disputes", { credentials: "include" })
       .then((r) => r.json())
       .then((j) => setDisputes(j.disputes ?? []));
+    fetch("/api/v1/admin/solutions", { credentials: "include" })
+      .then((r) => r.json())
+      .then((j) => {
+        setSolutions(j.requests ?? []);
+        setSolutionCounts(j.counts ?? {});
+      });
   };
   useEffect(load, []);
 
@@ -88,6 +97,71 @@ export default function AdminPage() {
   return (
     <div className="page">
       <h1 className="text-3xl mb-4">Admin</h1>
+      <h2 className="text-xl mb-2">Solution requests</h2>
+      <p className="text-muted text-sm mb-3">
+        Status counts: {Object.entries(solutionCounts.by_status ?? {}).map(([status, n]) => `${status} ${n}`).join(" · ") || "none yet"}
+        . By service: {Object.entries(solutionCounts.by_service ?? {}).map(([service, n]) => `${service} ${n}`).join(" · ") || "none yet"}.
+      </p>
+      <ul className="space-y-2 text-sm mb-8">
+        {solutions.map((row) => (
+          <li key={String(row.id)} className="border border-line p-3">
+            <p>
+              <span className="mono">{String(row.reference)}</span> · {String(row.organization_name)} · {String(row.contact_name)} ·{" "}
+              {String(row.email)}
+            </p>
+            <p>{Array.isArray(row.services) ? row.services.join(", ") : ""}</p>
+            <p>{String(row.problem).slice(0, 280)}</p>
+            <p className="text-muted">
+              Contact about this request: {row.contact_consent ? "yes" : "no"}. Marketing: {row.marketing_consent ? "yes" : "no"}.
+            </p>
+            <form
+              className="intake-grid"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const data = new FormData(form);
+                const res = await fetch(`/api/v1/admin/solutions/${String(row.id)}`, {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    status: String(data.get("status") ?? ""),
+                    note: String(data.get("note") ?? ""),
+                    internal_notes: String(data.get("internal_notes") ?? ""),
+                  }),
+                });
+                if (!res.ok) {
+                  const body = await res.json().catch(() => null);
+                  alert(body?.error?.message ?? "Could not update the request");
+                }
+                load();
+              }}
+            >
+              <label>
+                Status
+                <select name="status" defaultValue={String(row.status)}>
+                  {SOLUTION_STATUSES.map((status) => (
+                    <option key={status.id} value={status.id}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Follow-up note
+                <input name="note" defaultValue="" />
+              </label>
+              <label>
+                Internal notes
+                <textarea name="internal_notes" defaultValue={String(row.internal_notes ?? "")} rows={3} />
+              </label>
+              <button className="btn" type="submit">
+                Save
+              </button>
+            </form>
+          </li>
+        ))}
+      </ul>
       <form onSubmit={lookup} className="lookup-row">
         <input
           className="border border-line p-2 flex-1"

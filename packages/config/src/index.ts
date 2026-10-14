@@ -1,3 +1,5 @@
+export * from "./solutions.js";
+
 export const PRODUCT_NAME = "Oyokometa";
 export const RULESET_VERSION = "ruleset-1.0.0";
 export const PLATFORM_VERSION = "0.1.0";

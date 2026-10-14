@@ -8,6 +8,8 @@ const PRIMARY = [
   { href: "/analyze", label: "Analyze" },
   { href: "/create", label: "Create" },
   { href: "/verify", label: "Verify" },
+  { href: "/services", label: "Services" },
+  { href: "/about", label: "About" },
   { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
 ];
@@ -40,6 +42,9 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="header-end">
+          <a className="btn nav-cta" href="/request-solution">
+            Request a Solution
+          </a>
           <nav className="nav-meta" aria-label="Account">
             {SECONDARY.map((l) => (
               <a key={l.href} href={l.href} className={active(l.href) ? "is-active" : undefined}>
@@ -61,6 +66,9 @@ export function SiteHeader() {
       </div>
       {open ? (
         <nav id="mobile-nav" className="nav-mobile" aria-label="Mobile">
+          <a href="/request-solution" onClick={() => setOpen(false)}>
+            Request a Solution
+          </a>
           {[...PRIMARY, ...SECONDARY].map((l) => (
             <a
               key={l.href}

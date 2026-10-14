@@ -217,6 +217,25 @@ export async function sendPaymentNotMatched(input: { email: string; reference: s
   });
 }
 
+export async function sendSolutionReceipt(input: { email: string; reference: string }) {
+  const origin = publicAppOrigin();
+  const out = await sendTransactional({
+    to: input.email,
+    subject: `We received your Oyokometa request (${input.reference})`,
+    kicker: "Solutions",
+    heading: "We've received your request",
+    preheader: `Reference ${input.reference}. This is not a commitment to deliver a service.`,
+    paragraphs: [
+      "Your requirements are with Oyokometa for review. A next step may be a clarification, a discovery call, a technical assessment, a proposed pilot, or a scoped engagement.",
+      "This message confirms receipt only. No price or timeline is confirmed until it is agreed.",
+    ],
+    details: [{ label: "Reference", value: input.reference }],
+    ctaLabel: "Explore the platform",
+    ctaUrl: `${origin}/analyze`,
+  });
+  return out.sent;
+}
+
 export async function sendAdminNotice(subject: string, paragraphs: string[]) {
   const to = process.env.ADMIN_EMAIL?.trim();
   if (!to) return;

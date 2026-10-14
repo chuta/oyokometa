@@ -383,6 +383,60 @@ export const disputes = pgTable("disputes", {
   ...ts,
 });
 
+export const clientRequests = pgTable(
+  "client_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referenceCode: text("reference_code").notNull().unique(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    status: text("status").notNull().default("new"),
+    contactName: text("contact_name").notNull(),
+    email: text("email").notNull(),
+    organizationName: text("organization_name").notNull(),
+    jobTitle: text("job_title").notNull(),
+    country: text("country").notNull(),
+    contactMethod: text("contact_method").notNull(),
+    phone: text("phone"),
+    website: text("website"),
+    profileUrl: text("profile_url"),
+    preferredTime: text("preferred_time"),
+    organizationType: text("organization_type").notNull(),
+    organizationContext: text("organization_context"),
+    services: jsonb("services").$type<string[]>().notNull(),
+    needs: jsonb("needs").$type<string[]>().notNull(),
+    problem: text("problem").notNull(),
+    mediaTypes: jsonb("media_types").$type<string[]>().notNull(),
+    mediaSources: jsonb("media_sources").$type<string[]>().notNull(),
+    volume: text("volume"),
+    engagement: text("engagement"),
+    budgetRange: text("budget_range"),
+    currency: text("currency"),
+    expectedStart: text("expected_start"),
+    decisionStatus: text("decision_status"),
+    details: jsonb("details").$type<Record<string, unknown>>().notNull(),
+    privacyAck: boolean("privacy_ack").notNull(),
+    marketingConsent: boolean("marketing_consent").notNull().default(false),
+    contactConsent: boolean("contact_consent").notNull().default(false),
+    internalNotes: text("internal_notes"),
+    assignedUserId: uuid("assigned_user_id").references(() => users.id),
+    ...ts,
+  },
+  (t) => [index("client_requests_status_idx").on(t.status, t.createdAt)],
+);
+
+export const clientRequestEvents = pgTable("client_request_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestId: uuid("request_id")
+    .notNull()
+    .references(() => clientRequests.id),
+  actor: text("actor").notNull(),
+  kind: text("kind").notNull(),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   actor: text("actor").notNull(),

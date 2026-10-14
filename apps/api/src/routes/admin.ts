@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { and, desc, eq, or, sql } from "drizzle-orm";
-import { ERROR_CODES } from "@oyokometa/config";
+import { ERROR_CODES, SOLUTION_NEEDS, SOLUTION_ORGANIZATIONS, SOLUTION_STATUSES, solutionLabel, solutionTitle } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
   getDb,
@@ -19,6 +19,8 @@ import {
   disputes,
   provenanceRecords,
   provenanceEvents,
+  clientRequests,
+  clientRequestEvents,
 } from "@oyokometa/db";
 import { getSigner } from "../signing/kms.js";
 import { signEvent, sha256Utf8 } from "../signing/events.js";
@@ -364,6 +366,88 @@ adminRoutes.post("/admin/disputes/:id", async (c) => {
       .where(eq(disputes.id, row.id));
   }
   await audit(auth.user!.id, "admin.dispute.resolve", row.id, body.reason, { outcome: body.outcome });
+  return c.json({ ok: true });
+});
+
+adminRoutes.get("/admin/solutions", async (c) => {
+  const db = getDb();
+  const rows = await db.select().from(clientRequests).orderBy(desc(clientRequests.createdAt)).limit(100);
+  const tally = await db.select({ status: clientRequests.status, services: clientRequests.services }).from(clientRequests);
+  const counts = new Map<string, number>();
+  const byService = new Map<string, number>();
+  for (const row of tally) {
+    counts.set(row.status, (counts.get(row.status) ?? 0) + 1);
+    for (const service of row.services) byService.set(service, (byService.get(service) ?? 0) + 1);
+  }
+  return c.json({
+    counts: {
+      by_status: Object.fromEntries(counts),
+      by_service: Object.fromEntries([...byService].map(([id, n]) => [solutionTitle(id), n])),
+    },
+    requests: rows.map((row) => ({
+      id: row.id,
+      reference: row.referenceCode,
+      status: row.status,
+      status_label: solutionLabel(SOLUTION_STATUSES, row.status),
+      contact_name: row.contactName,
+      email: row.email,
+      organization_name: row.organizationName,
+      job_title: row.jobTitle,
+      country: row.country,
+      contact_method: row.contactMethod,
+      phone: row.phone,
+      organization_type: solutionLabel(SOLUTION_ORGANIZATIONS, row.organizationType),
+      services: row.services.map(solutionTitle),
+      needs: row.needs.map((id) => solutionLabel(SOLUTION_NEEDS, id)),
+      problem: row.problem,
+      volume: row.volume,
+      engagement: row.engagement,
+      budget_range: row.budgetRange,
+      currency: row.currency,
+      expected_start: row.expectedStart,
+      contact_consent: row.contactConsent,
+      marketing_consent: row.marketingConsent,
+      internal_notes: row.internalNotes,
+      created_at: row.createdAt,
+    })),
+  });
+});
+
+adminRoutes.post("/admin/solutions/:id", async (c) => {
+  const auth = c.get("auth");
+  const body = await c.req.json<{ status?: string; note?: string; internal_notes?: string }>().catch(() => null);
+  if (!body) return c.json(apiError(ERROR_CODES.validation_error, "Enter an update", auth.requestId), 400);
+  const db = getDb();
+  const [row] = await db.select().from(clientRequests).where(eq(clientRequests.id, c.req.param("id"))).limit(1);
+  if (!row) return notFound(c);
+  const status = body.status?.trim();
+  if (status && !SOLUTION_STATUSES.some((item) => item.id === status)) {
+    return c.json(apiError(ERROR_CODES.validation_error, "Choose a valid status", auth.requestId), 400);
+  }
+  const note = body.note?.trim().slice(0, 2000) || null;
+  const notes = typeof body.internal_notes === "string" ? body.internal_notes.trim().slice(0, 8000) : undefined;
+  await db
+    .update(clientRequests)
+    .set({
+      status: status || row.status,
+      internalNotes: notes === undefined ? row.internalNotes : notes || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(clientRequests.id, row.id));
+  if ((status && status !== row.status) || note) {
+    await db.insert(clientRequestEvents).values({
+      requestId: row.id,
+      actor: auth.user!.id,
+      kind: status && status !== row.status ? "status" : "note",
+      fromStatus: row.status,
+      toStatus: status || row.status,
+      note,
+    });
+  }
+  await audit(auth.user!.id, "admin.solution.update", row.id, note ?? undefined, {
+    from: row.status,
+    to: status || row.status,
+  });
   return c.json({ ok: true });
 });
 

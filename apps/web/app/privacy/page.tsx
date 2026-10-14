@@ -22,6 +22,11 @@ export default function PrivacyPage() {
           score. Quick Scan is scored on Oyokometa&apos;s own server and is not sent to either provider.
         </li>
         <li>Delete now removes the image, previews, evidence record and reports from primary storage within minutes.</li>
+        <li>
+          A solution request stores the details you submit so Oyokometa can review the enquiry. A
+          confirmation may be emailed to you, and a short notice goes to the Oyokometa team. The
+          request is not used to train a model. Marketing email is sent only if you opt in separately.
+        </li>
       </ul>
     </article>
   );
