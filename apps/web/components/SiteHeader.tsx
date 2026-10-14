@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AuthBar } from "@/components/AuthBar";
 
@@ -14,7 +14,7 @@ const PRIMARY = [
   { href: "/pricing", label: "Pricing" },
 ];
 
-const SECONDARY = [
+const ACCOUNT = [
   { href: "/sample", label: "Sample" },
   { href: "/credits", label: "Credits" },
   { href: "/account", label: "Account" },
@@ -22,9 +22,41 @@ const SECONDARY = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const accountMenuId = useId();
   const path = usePathname() ?? "/";
 
   const active = (href: string) => path === href || path.startsWith(`${href}/`);
+  const accountActive =
+    ACCOUNT.some((l) => active(l.href)) ||
+    active("/admin") ||
+    active("/sign-in") ||
+    active("/sign-up");
+
+  useEffect(() => {
+    setAccountOpen(false);
+    setOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setAccountOpen(false);
+      accountButtonRef.current?.focus();
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [accountOpen]);
 
   return (
     <header className="site-header">
@@ -45,14 +77,28 @@ export function SiteHeader() {
           <a className="btn nav-cta" href="/request-solution">
             Request a Solution
           </a>
-          <nav className="nav-meta" aria-label="Account">
-            {SECONDARY.map((l) => (
-              <a key={l.href} href={l.href} className={active(l.href) ? "is-active" : undefined}>
-                {l.label}
-              </a>
-            ))}
-            <AuthBar />
-          </nav>
+          <div className="account-menu" ref={accountRef}>
+            <button
+              ref={accountButtonRef}
+              type="button"
+              className={accountActive ? "is-active" : undefined}
+              aria-expanded={accountOpen}
+              aria-controls={accountMenuId}
+              onClick={() => setAccountOpen((v) => !v)}
+            >
+              Account
+            </button>
+            <div id={accountMenuId} className="account-menu-panel" hidden={!accountOpen}>
+              <nav aria-label="Account">
+                {ACCOUNT.map((l) => (
+                  <a key={l.href} href={l.href} className={active(l.href) ? "is-active" : undefined}>
+                    {l.label}
+                  </a>
+                ))}
+                <AuthBar />
+              </nav>
+            </div>
+          </div>
           <button
             type="button"
             className="menu-toggle"
@@ -69,7 +115,18 @@ export function SiteHeader() {
           <a href="/request-solution" onClick={() => setOpen(false)}>
             Request a Solution
           </a>
-          {[...PRIMARY, ...SECONDARY].map((l) => (
+          {PRIMARY.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className={active(l.href) ? "is-active" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              {l.label}
+            </a>
+          ))}
+          <p className="nav-mobile-label">Account</p>
+          {ACCOUNT.map((l) => (
             <a
               key={l.href}
               href={l.href}

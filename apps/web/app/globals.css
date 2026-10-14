@@ -93,7 +93,7 @@ a {
 .nav-meta {
   display: none;
   align-items: center;
-  gap: 1.15rem;
+  gap: 1.75rem;
   font-size: 0.9rem;
 }
 
@@ -103,6 +103,7 @@ a {
   text-decoration: none;
   color: var(--muted);
   border-bottom: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .nav-desktop a:hover,
@@ -118,7 +119,112 @@ a {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.35rem;
+  flex-shrink: 0;
+}
+
+.account-menu {
+  position: relative;
+  display: none;
+}
+
+.account-menu > button {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.account-menu > button::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+}
+
+.account-menu > button:hover,
+.account-menu > button.is-active,
+.account-menu > button[aria-expanded="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--brand);
+}
+
+.account-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.95rem);
+  right: 0;
+  min-width: 13rem;
+  background: #0a0a0a;
+  border: 1px solid var(--line);
+  padding: 0.4rem;
+  z-index: 50;
+}
+
+.account-menu-panel[hidden] {
+  display: none;
+}
+
+.account-menu-panel nav {
+  display: grid;
+}
+
+.account-menu-panel a {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.9rem;
+  text-decoration: none;
+  color: var(--muted);
+  border-bottom: 0;
+}
+
+.account-menu-panel a:hover,
+.account-menu-panel a.is-active {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.account-menu-panel .auth-user {
+  display: grid;
+  gap: 0;
+}
+
+.account-menu-panel .auth-user .btn {
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.9rem;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+}
+
+.account-menu-panel .auth-user .btn:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.nav-mobile-label {
+  margin: 0.85rem 0 0.15rem;
+  padding: 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .menu-toggle {
@@ -151,7 +257,8 @@ a {
 
 @media (min-width: 1200px) {
   .nav-desktop,
-  .nav-meta {
+  .nav-meta,
+  .account-menu {
     display: flex;
   }
   .menu-toggle,
@@ -1816,6 +1923,12 @@ summary {
 .audience-list,
 .reason-list {
   max-width: 42rem;
+}
+
+.request-hero h1,
+.request-hero .lede,
+.request-hero p {
+  max-width: none;
 }
 
 .about-section {

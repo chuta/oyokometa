@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function RequestSolutionPage() {
   return (
     <article className="page about-page">
-      <header className="about-hero">
+      <header className="about-hero request-hero">
         <p className="kicker">Work with Oyokometa</p>
         <h1>Tell us what you need to solve.</h1>
         <p className="lede">
