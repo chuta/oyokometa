@@ -27,6 +27,7 @@ type View = {
   standing_line: string;
   credential_type: string;
   mode: string;
+  visibility?: string;
 };
 
 const FIELD_LABEL: Record<string, string> = {
@@ -79,9 +80,17 @@ export function PublicRecord({ publicId }: { publicId: string }) {
         reason: fd.get("reason"),
       }),
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(
+        j.error?.code === "not_found"
+          ? "Disputes can be filed on public records."
+          : (j.error?.message ?? "The complaint could not be filed."),
+      );
+      return;
+    }
     if (j.dev_link) window.location.href = j.dev_link;
-    else alert(j.error?.message ?? "Check your email to confirm the complaint.");
+    else alert("Check your email to confirm the complaint.");
   };
 
   const withdraw = async () => {
@@ -259,7 +268,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
               <VerifyForm publicId={publicId} />
             </section>
 
-            {!withdrawn && view.status !== "disputed" ? (
+            {!withdrawn && view.status !== "disputed" && view.visibility === "public" ? (
               <form className="report-panel" onSubmit={dispute}>
                 <h3>Dispute</h3>
                 <p className="text-sm text-muted mb-2">
