@@ -24,8 +24,9 @@ function walk(node: unknown, found: ClassScore[]) {
   }
   if (!node || typeof node !== "object") return;
   const rec = node as Record<string, unknown>;
-  if (typeof rec.class === "string" && typeof rec.score === "number" && Number.isFinite(rec.score)) {
-    found.push({ className: rec.class, score: rec.score });
+  const numeric = typeof rec.score === "number" ? rec.score : rec.value;
+  if (typeof rec.class === "string" && typeof numeric === "number" && Number.isFinite(numeric)) {
+    found.push({ className: rec.class, score: numeric });
   }
   for (const value of Object.values(rec)) walk(value, found);
 }

@@ -128,6 +128,8 @@ export async function runPipeline(jobId: string): Promise<void> {
         payload: { decision: "accepted" },
       });
     } catch (err) {
+      const detail = err && typeof err === "object" && "detail" in err ? String((err as { detail?: unknown }).detail ?? "") : "";
+      if (detail) console.warn(JSON.stringify({ msg: "content_policy_unavailable", detail }));
       if (failCode(err).code === "content_refused") {
         await db.insert(rawOutputs).values({
           jobId,

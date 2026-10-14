@@ -29,6 +29,11 @@ describe("adult content decision", () => {
   it("reads class scores from either response shape", () => {
     expect(collectClassScores(v2(clean)).map((score) => score.className)).toContain("general_nsfw");
     expect(collectClassScores({ output: [{ classes: clean }] })).toHaveLength(clean.length);
+    const v3 = {
+      output: [{ classes: clean.map((score) => ({ class: score.class, value: score.score })) }],
+    };
+    expect(collectClassScores(v3).find((score) => score.className === "general_nsfw")?.score).toBe(0.01);
+    expect(refusesAdultContent(collectClassScores(v3))).toBe(false);
   });
 
   it("refuses sexual classes at the threshold and leaves suggestive clothing alone", () => {
