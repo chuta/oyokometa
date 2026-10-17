@@ -18,6 +18,7 @@ import { provenanceRoutes } from "./routes/provenance.js";
 import { disputeRoutes } from "./routes/disputes.js";
 import { accountRoutes } from "./routes/account.js";
 import { solutionRoutes } from "./routes/solutions.js";
+import { feedbackRoutes } from "./routes/feedback.js";
 import { getSigner, retiredKeys } from "./signing/kms.js";
 import { startRetentionSchedule } from "./retention.js";
 
@@ -65,6 +66,7 @@ v1.route("/", provenanceRoutes);
 v1.route("/", disputeRoutes);
 v1.route("/", accountRoutes);
 v1.route("/", solutionRoutes);
+v1.route("/", feedbackRoutes);
 v1.notFound((c) =>
   c.json(apiError(ERROR_CODES.not_found, "Not found", c.get("auth")?.requestId ?? "unknown"), 404),
 );

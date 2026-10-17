@@ -18,6 +18,7 @@ export function SiteFooter() {
           <a href="/services">Services</a>
           <a href="/about">About</a>
           <a href="/request-solution">Request a Solution</a>
+          <a href="/contact">Contact</a>
         </nav>
         <nav className="footer-links" aria-label="Legal">
           <a href="/terms">Terms</a>

@@ -236,6 +236,22 @@ export async function sendSolutionReceipt(input: { email: string; reference: str
   return out.sent;
 }
 
+export async function sendFeedbackReceipt(input: { email: string; reference: string }) {
+  const origin = publicAppOrigin();
+  const out = await sendTransactional({
+    to: input.email,
+    subject: `We received your message (${input.reference})`,
+    kicker: "Contact",
+    heading: "We've received your message",
+    preheader: `Reference ${input.reference}.`,
+    paragraphs: ["Thank you for writing to Oyokometa. We read every note and reply when a reply is needed."],
+    details: [{ label: "Reference", value: input.reference }],
+    ctaLabel: "Back to Oyokometa",
+    ctaUrl: origin,
+  });
+  return out.sent;
+}
+
 export async function sendAdminNotice(subject: string, paragraphs: string[]) {
   const to = process.env.ADMIN_EMAIL?.trim();
   if (!to) return;

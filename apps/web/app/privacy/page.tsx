@@ -27,6 +27,11 @@ export default function PrivacyPage() {
           confirmation may be emailed to you, and a short notice goes to the Oyokometa team. The
           request is not used to train a model. Marketing email is sent only if you opt in separately.
         </li>
+        <li>
+          A contact message stores your name, email, and message so Oyokometa can read the feedback.
+          A confirmation may be emailed to you, and the message is sent to the Oyokometa team. It is
+          not used to train a model.
+        </li>
       </ul>
     </article>
   );

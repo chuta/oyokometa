@@ -437,6 +437,20 @@ export const clientRequestEvents = pgTable("client_request_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const feedbackMessages = pgTable(
+  "feedback_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referenceCode: text("reference_code").notNull().unique(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("feedback_messages_email_idx").on(t.email, t.createdAt)],
+);
+
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   actor: text("actor").notNull(),
