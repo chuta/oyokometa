@@ -4,82 +4,74 @@ export const SOLUTION_SERVICES = [
   {
     id: "ai-detection",
     title: "AI & Synthetic Media Detection",
-    summary:
-      "Evaluate and integrate ways to assess AI-generated images, synthetic media, and related content risks.",
+    summary: "Assess AI-generated and synthetic images, then fit a check into the review you already run.",
     useCases: [
-      "Compare detection tools against a customer's own media.",
-      "Integrate a suitable check into an existing review workflow.",
-      "Combine detector outputs with metadata and provenance signals.",
-      "Write a review procedure for uncertain or conflicting results.",
+      "Compare tools on your own images",
+      "Add a check to an existing workflow",
+      "Combine scores with metadata and provenance",
+      "Write a procedure for uncertain results",
     ],
-    customers: "Newsrooms, platforms, insurers, marketplaces, compliance teams, and enterprises.",
-    limitation:
-      "Detection outputs are probabilistic. They can fail on unfamiliar generators, edited images, screenshots, or compressed media. A score is not proof of fraud or authenticity.",
+    customers: "Newsrooms, platforms, insurers, and marketplaces.",
+    limitation: "A score is a signal. It is not proof of fraud or authenticity.",
   },
   {
     id: "provenance",
     title: "Image Provenance & Forensic Assessment",
-    summary: "Inspect the technical evidence available for an image and document what it can and cannot establish.",
+    summary: "Inspect an image and record what the file can and cannot establish.",
     useCases: [
-      "Metadata and file-structure analysis.",
-      "Cryptographic fingerprinting and comparison of versions.",
-      "Content Credentials and supported provenance checks.",
-      "Evidence-oriented reporting and handling recommendations.",
+      "Metadata and file structure",
+      "Fingerprints and version comparison",
+      "Content Credentials",
+      "A written evidence report",
     ],
-    customers: "Journalists, investigators, legal teams, fact-checkers, and organisations handling disputed media.",
-    limitation:
-      "A technical report is not a determination of authorship, intent, truth, or legal admissibility. Specialist forensic work is offered only within demonstrated capabilities.",
+    customers: "Journalists, investigators, legal teams, and fact-checkers.",
+    limitation: "A report does not prove authorship, intent, or truth.",
   },
   {
     id: "claims",
     title: "Visual Fraud & Claims Screening",
-    summary:
-      "Design review workflows for images that arrive with claims, applications, listings, or other transactions.",
+    summary: "Screen images that arrive with a claim, application, or listing.",
     useCases: [
-      "Claims and listing image screening.",
-      "Duplicate and near-duplicate checks.",
-      "Human-review escalation.",
-      "A pilot on a customer-approved dataset.",
+      "Claims and listing screening",
+      "Duplicate and near-duplicate checks",
+      "Escalation to a person",
+      "A pilot on your own files",
     ],
-    customers: "Insurers, financial institutions, marketplaces, and digital platforms.",
-    limitation:
-      "Screening supports human review and an existing decision policy. An image check alone does not classify a person or a claim as fraudulent.",
+    customers: "Insurers, banks, marketplaces, and platforms.",
+    limitation: "A check supports human review. It does not label a person or a claim as fraud.",
   },
   {
     id: "integration",
     title: "API Integration & Workflow Automation",
-    summary:
-      "Connect media analysis, provenance, verification, or screening to the systems an organisation already uses.",
+    summary: "Connect a media check to the systems you already use.",
     useCases: [
-      "Select and integrate a suitable API.",
-      "Normalise outputs from more than one provider.",
-      "Reporting, usage tracking, and cost controls.",
-      "A customer-facing or internal workflow.",
+      "Choose a suitable API",
+      "Normalise results from more than one provider",
+      "Usage and cost reporting",
+      "An internal or customer-facing workflow",
     ],
-    customers: "Technology companies, developers, enterprises, financial institutions, and platforms.",
-    limitation: "The engagement uses suitable existing capabilities. It does not rebuild a tool that already does the job.",
+    customers: "Technology teams, enterprises, and financial institutions.",
+    limitation: "We connect a tool that already does the job.",
   },
   {
     id: "advisory",
     title: "Advisory, Training & Custom Solutions",
-    summary:
-      "Help a team understand media-integrity risk, choose an approach, and use it with a clear sense of its limits.",
+    summary: "Help a team choose an approach and use it with a clear sense of its limits.",
     useCases: [
-      "Assessments and technology evaluation.",
-      "Workshops, staff training, and operating procedures.",
-      "A proof of concept or implementation plan.",
-      "Coordination of a custom build or a specialist partner.",
+      "Assessment and tool evaluation",
+      "Training and operating procedures",
+      "A proof of concept or plan",
+      "Coordination of a custom build",
     ],
-    customers: "Enterprises, newsrooms, legal teams, public-interest organisations, and technology businesses.",
-    limitation:
-      "Advisory deliverables are not a substitute for specialist forensic, legal, or other regulated expertise.",
+    customers: "Enterprises, newsrooms, legal teams, and public-interest organisations.",
+    limitation: "Advice is not a substitute for specialist forensic or legal work.",
   },
 ] as const;
 
 export const CUSTOM_SERVICE = {
   id: "custom",
   title: "Something else / Custom requirement",
-  summary: "Describe a problem that does not fit the categories above.",
+  summary: "Tell us about a problem that does not fit the list above.",
 } as const;
 
 export const SOLUTION_SERVICE_IDS = [...SOLUTION_SERVICES.map((service) => service.id), CUSTOM_SERVICE.id] as const;

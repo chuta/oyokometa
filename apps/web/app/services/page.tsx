@@ -22,9 +22,8 @@ export default function ServicesPage() {
         <p className="kicker">Services</p>
         <h1>The right capabilities for your actual problem.</h1>
         <p className="lede">
-          Five ways to engage Oyokometa, plus room for a requirement that does not fit a category.
-          Each one can use the public platform, a specialist provider, an integration, or advisory
-          work. None of them promises that every image can be authenticated.
+          Five services, plus room for a problem that does not fit. A check records what the file can
+          support.
         </p>
       </header>
       <ServiceCards />

@@ -1982,7 +1982,13 @@ summary {
 }
 
 .service-card ul {
-  padding-left: 1.1rem;
+  margin: 0;
+  padding-left: 1.15rem;
+  list-style: disc;
+}
+
+.service-card li + li {
+  margin-top: 0.35rem;
 }
 
 .service-card .btn {
