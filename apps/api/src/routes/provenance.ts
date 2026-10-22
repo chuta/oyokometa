@@ -707,7 +707,35 @@ async function publicRecordView(publicId: string, userId: string | null) {
   const earliest = publicPeers.map((p) => p.createdAt).sort((a, b) => a.getTime() - b.getTime())[0];
   const origin = publicAppOrigin();
   const verifyUrl = `${origin}/verify/${row.publicId}`;
-  const canonical = JSON.parse(row.canonicalJson) as { contradictions?: string[] };
+  const canonical = JSON.parse(row.canonicalJson) as {
+    contradictions?: string[];
+    capture?: {
+      statement?: string;
+      subline?: string;
+      camera_line?: string | null;
+      location_line?: string | null;
+      location_reported?: boolean;
+      latitude?: number | null;
+      longitude?: number | null;
+      accuracy_m?: number | null;
+      user_agent?: string | null;
+    };
+  };
+  const storedCapture = canonical.capture;
+  const capture =
+    withdrawn || !storedCapture?.statement || !storedCapture.subline
+      ? null
+      : {
+          statement: storedCapture.statement,
+          subline: storedCapture.subline,
+          camera_line: storedCapture.camera_line ?? null,
+          location_line: storedCapture.location_line ?? null,
+          location_reported: Boolean(storedCapture.location_reported),
+          latitude: isRegistrant ? (storedCapture.latitude ?? null) : null,
+          longitude: isRegistrant ? (storedCapture.longitude ?? null) : null,
+          accuracy_m: isRegistrant ? (storedCapture.accuracy_m ?? null) : null,
+          user_agent: isRegistrant ? (storedCapture.user_agent ?? null) : null,
+        };
   const thumbnailUrl = await previewUrlForViewer(row, isRegistrant, withdrawn);
   return {
     public_id: row.publicId,
@@ -741,6 +769,7 @@ async function publicRecordView(publicId: string, userId: string | null) {
         ? `This file has ${n} registrations. The earliest was on ${earliest.toISOString().slice(0, 10)}.`
         : null,
     contradictions: withdrawn ? [] : canonical.contradictions ?? [],
+    capture,
     is_registrant: isRegistrant,
     record_problem:
       signature_status !== "valid"

@@ -2117,3 +2117,64 @@ summary {
     text-align: center;
   }
 }
+
+.capture-stage {
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.capture-stage video,
+.capture-stage img {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.capture-list {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 2rem;
+}
+
+.capture-list article {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+}
+
+
+.capture-stage {
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.capture-stage video,
+.capture-stage img {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.capture-list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+}
+
+.capture-list li {
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.capture-list li p {
+  margin: 0.25rem 0;
+}

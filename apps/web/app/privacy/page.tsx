@@ -32,6 +32,13 @@ export default function PrivacyPage() {
           A confirmation may be emailed to you, and the message is sent to the Oyokometa team. It is
           not used to train a model.
         </li>
+        <li>
+          A capture link stores the photo request, an optional address, the photo that arrives, the
+          time it arrived, and any location or browser details the device sends. The photo goes through
+          the same malware and adult-content checks as other uploads. The signed record says the file
+          is unchanged since receipt. Location and camera details are stored as reported by the device.
+          It is not used to train a model.
+        </li>
       </ul>
     </article>
   );

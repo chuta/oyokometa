@@ -16,6 +16,7 @@ const PRIMARY = [
 
 const ACCOUNT = [
   { href: "/sample", label: "Sample" },
+  { href: "/capture", label: "Capture" },
   { href: "/credits", label: "Credits" },
   { href: "/account", label: "Account" },
 ];

@@ -1,12 +1,14 @@
-import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import {
   getDb,
   analysisJobs,
   assets,
   auditLog,
+  captureRequests,
   magicLinks,
   provenanceEvents,
   provenanceRecords,
+  releaseHold,
   sessions,
   users,
 } from "@oyokometa/db";
@@ -93,6 +95,18 @@ export async function eraseAccount(userId: string) {
     .where(and(eq(assets.ownerUserId, userId), isNull(assets.imageDeletedAt)));
   for (const asset of owned) await purgeAssetBytes(asset);
   await db.update(assets).set({ declaredFilename: null, updatedAt: new Date() }).where(eq(assets.ownerUserId, userId));
+
+  const openCaptures = await db
+    .select()
+    .from(captureRequests)
+    .where(and(eq(captureRequests.ownerUserId, userId), inArray(captureRequests.status, ["open", "capturing", "processing"])));
+  for (const row of openCaptures) {
+    await releaseHold(row.id, "system:account-deletion");
+    await db
+      .update(captureRequests)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(eq(captureRequests.id, row.id));
+  }
 
   const records = await db
     .select()

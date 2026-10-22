@@ -123,6 +123,28 @@ export const VERIFY_SUBLINES = {
     "Similarity does not establish that one file derives from the other, or who owns either.",
 } as const;
 
+export const CAPTURE_SUBLINE =
+  "This confirms the file is unchanged since receipt. It does not confirm that the camera was physical, or that the scene is what it appears to be.";
+
+export const CAPTURE_CAMERA_LINE = "The session reported a live camera.";
+
+export const CAPTURE_LOCATION_LINE = "The device reported a location.";
+
+const CAPTURE_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Server clock, always UTC, so the signed sentence does not imply a local time zone. */
+export function formatCaptureTime(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm} UTC on ${d.getUTCDate()} ${CAPTURE_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+export function captureStatement(receivedAtIso: string) {
+  return `This photo was received through an Oyokometa capture session at ${formatCaptureTime(receivedAtIso)}. The file matches the signed record.`;
+}
+
 export const REGISTRATION_ATTESTATION =
   "I have the right to register this file. I understand this record does not prove authorship.";
 

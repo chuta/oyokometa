@@ -13,6 +13,7 @@ export function SiteFooter() {
         <nav className="footer-links" aria-label="Product">
           <a href="/analyze">Analyze</a>
           <a href="/create">Create</a>
+          <a href="/capture">Capture</a>
           <a href="/verify">Verify</a>
           <a href="/how-it-works">How it works</a>
           <a href="/services">Services</a>

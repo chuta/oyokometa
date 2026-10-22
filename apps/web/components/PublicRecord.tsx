@@ -28,6 +28,17 @@ type View = {
   credential_type: string;
   mode: string;
   visibility?: string;
+  capture?: {
+    statement: string;
+    subline: string;
+    camera_line: string | null;
+    location_line: string | null;
+    location_reported: boolean;
+    latitude: number | null;
+    longitude: number | null;
+    accuracy_m: number | null;
+    user_agent: string | null;
+  } | null;
 };
 
 const FIELD_LABEL: Record<string, string> = {
@@ -37,6 +48,8 @@ const FIELD_LABEL: Record<string, string> = {
   description: "Description",
   ai_use: "AI-use disclosure",
   licence_note: "Licence note",
+  capture_prompt: "Requested photo",
+  stated_address: "Stated address",
 };
 
 export function PublicRecord({ publicId }: { publicId: string }) {
@@ -117,7 +130,7 @@ export function PublicRecord({ publicId }: { publicId: string }) {
   };
 
   const declarations = Object.entries(view.declarations ?? {}).filter(([, v]) => v);
-  const headline = view.record_problem?.headline ?? "Registered record";
+  const headline = view.record_problem?.headline ?? (view.mode === "capture" ? "Capture record" : "Registered record");
   const fileTitle = view.display_name || "Registered file";
 
   return (
@@ -143,6 +156,20 @@ export function PublicRecord({ publicId }: { publicId: string }) {
           </p>
         ) : null}
         {view.duplicate_note ? <p className="mb-4">{view.duplicate_note}</p> : null}
+        {view.capture ? (
+          <section className="mb-6">
+            <p>{view.capture.statement}</p>
+            <p>{view.capture.subline}</p>
+            {view.capture.camera_line ? <p>{view.capture.camera_line}</p> : null}
+            {view.capture.location_line ? <p>{view.capture.location_line}</p> : null}
+            {view.is_registrant && view.capture.location_reported && view.capture.latitude != null && view.capture.longitude != null ? (
+              <p className="mono">
+                {view.capture.latitude.toFixed(5)}, {view.capture.longitude.toFixed(5)}
+                {view.capture.accuracy_m != null ? ` ± ${Math.round(view.capture.accuracy_m)} m` : ""}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
 
         <div className="report-grid">
           <aside className="report-file">

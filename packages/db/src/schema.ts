@@ -7,6 +7,7 @@ import {
   bigint,
   boolean,
   jsonb,
+  doublePrecision,
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
@@ -359,6 +360,65 @@ export const provenanceEvents = pgTable("provenance_events", {
   payload: jsonb("payload"),
   signature: text("signature").notNull(),
   prevEventHash: text("prev_event_hash"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const captureRequests = pgTable(
+  "capture_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerUserId: uuid("owner_user_id")
+      .notNull()
+      .references(() => users.id),
+    referenceCode: text("reference_code").notNull().unique(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    tokenHash: text("token_hash").notNull().unique(),
+    prompt: text("prompt").notNull(),
+    address: text("address"),
+    status: text("status").notNull().default("open"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    provenanceRecordId: uuid("provenance_record_id").references(() => provenanceRecords.id),
+    assetId: uuid("asset_id").references(() => assets.id),
+    ...ts,
+  },
+  (t) => [index("capture_requests_owner_idx").on(t.ownerUserId, t.createdAt)],
+);
+
+export const captureSessions = pgTable(
+  "capture_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestId: uuid("request_id")
+      .notNull()
+      .references(() => captureRequests.id),
+    nonceHash: text("nonce_hash").notNull(),
+    nonceExpiresAt: timestamp("nonce_expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("capture_sessions_request_idx").on(t.requestId, t.createdAt)],
+);
+
+export const captureFrames = pgTable("capture_frames", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestId: uuid("request_id")
+    .notNull()
+    .references(() => captureRequests.id),
+  sessionId: uuid("session_id")
+    .notNull()
+    .references(() => captureSessions.id),
+  sha256: text("sha256").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  accuracyM: doublePrecision("accuracy_m"),
+  cameraReported: boolean("camera_reported").notNull().default(false),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
