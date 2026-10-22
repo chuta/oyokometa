@@ -38,6 +38,7 @@ type View = {
     longitude: number | null;
     accuracy_m: number | null;
     user_agent: string | null;
+    place_label?: string | null;
   } | null;
 };
 
@@ -163,10 +164,18 @@ export function PublicRecord({ publicId }: { publicId: string }) {
             {view.capture.camera_line ? <p>{view.capture.camera_line}</p> : null}
             {view.capture.location_line ? <p>{view.capture.location_line}</p> : null}
             {view.is_registrant && view.capture.location_reported && view.capture.latitude != null && view.capture.longitude != null ? (
-              <p className="mono">
-                {view.capture.latitude.toFixed(5)}, {view.capture.longitude.toFixed(5)}
-                {view.capture.accuracy_m != null ? ` ± ${Math.round(view.capture.accuracy_m)} m` : ""}
-              </p>
+              <>
+                {view.capture.place_label ? <p>{view.capture.place_label}</p> : null}
+                <p className="mono">
+                  {view.capture.latitude.toFixed(5)}, {view.capture.longitude.toFixed(5)}
+                  {view.capture.accuracy_m != null ? ` ± ${Math.round(view.capture.accuracy_m)} m` : ""}
+                </p>
+                {view.capture.place_label ? (
+                  <p className="field-hint">
+                    A map lookup of the reported coordinates. It names the surrounding area, not where the camera was pointed.
+                  </p>
+                ) : null}
+              </>
             ) : null}
           </section>
         ) : null}

@@ -27,6 +27,7 @@ import { allowEndpoint } from "../rate-limit.js";
 import { audit } from "../audit.js";
 import { priceChangedResponse, priceConfirmed } from "../price-check.js";
 import { getSigner, verifyRecordSignature } from "../signing/kms.js";
+import { lookupPlace } from "../reverse-geocode.js";
 import { stampRecord } from "../signing/tsa.js";
 import { signEvent, sha256Utf8, verifyEventChain, type EventType } from "../signing/events.js";
 import { declarationContradictions } from "../signing/contradictions.js";
@@ -735,7 +736,11 @@ async function publicRecordView(publicId: string, userId: string | null) {
           longitude: isRegistrant ? (storedCapture.longitude ?? null) : null,
           accuracy_m: isRegistrant ? (storedCapture.accuracy_m ?? null) : null,
           user_agent: isRegistrant ? (storedCapture.user_agent ?? null) : null,
+          place_label: null as string | null,
         };
+  if (capture?.latitude != null && capture.longitude != null) {
+    capture.place_label = await lookupPlace(capture.latitude, capture.longitude, capture.accuracy_m);
+  }
   const thumbnailUrl = await previewUrlForViewer(row, isRegistrant, withdrawn);
   return {
     public_id: row.publicId,
