@@ -1,6 +1,6 @@
 import { FORBIDDEN_COPY, captureStatement, formatCaptureTime } from "@oyokometa/config";
 import { describe, expect, it } from "vitest";
-import { captureBlock, nonceMatches, parseCaptureCreate, parseGps, requestCanAcceptFrame } from "./capture.js";
+import { captureBlock, captureDeviceLine, nonceMatches, parseCaptureCreate, parseDeviceReport, parseGps, requestCanAcceptFrame } from "./capture.js";
 import { sha256Hex } from "./crypto.js";
 
 describe("parseCaptureCreate", () => {
@@ -70,6 +70,37 @@ describe("capture wording", () => {
     expect(block.camera_line).toBe("The session reported a live camera.");
     expect(block.location_line).toBe("The device reported a location.");
     expect(block.subline.toLowerCase()).not.toContain("authentic");
+  });
+});
+
+describe("capture device report", () => {
+  it("keeps the camera name, facing, and model, and drops anything else", () => {
+    const parsed = parseDeviceReport({
+      camera_label: "  camera2 0, facing back ",
+      facing_mode: "environment",
+      platform: "Android",
+      platform_version: "14",
+      model: "Pixel 7",
+      mobile: true,
+      serial: "should-not-stick",
+    });
+    expect(parsed).toEqual({
+      cameraLabel: "camera2 0, facing back",
+      facingMode: "environment",
+      platform: "Android",
+      platformVersion: "14",
+      model: "Pixel 7",
+      mobile: true,
+    });
+    expect(captureDeviceLine(parsed)).toBe(
+      "The page reported a back camera (camera2 0, facing back) on Pixel 7, Android 14.",
+    );
+  });
+
+  it("ignores a report that names no camera and no device", () => {
+    expect(parseDeviceReport("not-json")).toBeNull();
+    expect(parseDeviceReport({ facing_mode: "left" })).toBeNull();
+    expect(captureDeviceLine(null)).toBeNull();
   });
 });
 

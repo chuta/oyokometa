@@ -38,6 +38,7 @@ type View = {
     longitude: number | null;
     accuracy_m: number | null;
     user_agent: string | null;
+    device_line?: string | null;
     place_label?: string | null;
   } | null;
 };
@@ -162,6 +163,15 @@ export function PublicRecord({ publicId }: { publicId: string }) {
             <p>{view.capture.statement}</p>
             <p>{view.capture.subline}</p>
             {view.capture.camera_line ? <p>{view.capture.camera_line}</p> : null}
+            {view.is_registrant && (view.capture.device_line || view.capture.user_agent) ? (
+              <>
+                {view.capture.device_line ? <p>{view.capture.device_line}</p> : null}
+                {view.capture.user_agent ? <p className="mono">{view.capture.user_agent}</p> : null}
+                <p className="field-hint">
+                  Reported by the browser during the capture. It does not prove which physical device was used.
+                </p>
+              </>
+            ) : null}
             {view.capture.location_line ? <p>{view.capture.location_line}</p> : null}
             {view.is_registrant && view.capture.location_reported && view.capture.latitude != null && view.capture.longitude != null ? (
               <>

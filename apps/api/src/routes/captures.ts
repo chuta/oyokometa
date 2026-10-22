@@ -20,6 +20,7 @@ import {
   NONCE_TTL_MS,
   nonceMatches,
   parseCaptureCreate,
+  parseDeviceReport,
   parseGps,
   requestCanAcceptFrame,
 } from "../capture.js";
@@ -330,6 +331,7 @@ captureRoutes.post("/capture-links/:token/frame", async (c) => {
     buf: Buffer.from(await image.arrayBuffer()),
     gps: gps.value,
     cameraReported: form.get("camera_reported") === "true",
+    device: parseDeviceReport(form.get("device_report")),
   });
   if (!result.ok) {
     const status = result.status === 503 ? 503 : 400;

@@ -93,12 +93,69 @@ export function requestCanAcceptFrame(status: string, updatedAt: Date, now = Dat
   return status === "processing" && now - updatedAt.getTime() > PROCESSING_STALE_MS;
 }
 
+export type DeviceReport = {
+  cameraLabel: string | null;
+  facingMode: "user" | "environment" | null;
+  platform: string | null;
+  platformVersion: string | null;
+  model: string | null;
+  mobile: boolean | null;
+};
+
+function clip(value: unknown, max: number) {
+  if (typeof value !== "string") return null;
+  const text = value.replace(/[\u0000-\u001f]/g, "").trim().slice(0, max);
+  return text || null;
+}
+
+/** Keeps only the fields the page is allowed to assert. A bad payload is ignored. */
+export function parseDeviceReport(raw: unknown): DeviceReport | null {
+  if (typeof raw === "string") {
+    if (raw.length > 2000) return null;
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!raw || typeof raw !== "object") return null;
+  const rec = raw as Record<string, unknown>;
+  const report: DeviceReport = {
+    cameraLabel: clip(rec.camera_label, 160),
+    facingMode: rec.facing_mode === "user" || rec.facing_mode === "environment" ? rec.facing_mode : null,
+    platform: clip(rec.platform, 40),
+    platformVersion: clip(rec.platform_version, 40),
+    model: clip(rec.model, 80),
+    mobile: typeof rec.mobile === "boolean" ? rec.mobile : null,
+  };
+  if (!report.cameraLabel && !report.facingMode && !report.platform && !report.platformVersion && !report.model && report.mobile == null) {
+    return null;
+  }
+  return report;
+}
+
+/** A sentence for the record page. The signed fields stay separate from this wording. */
+export function captureDeviceLine(device: DeviceReport | null) {
+  if (!device) return null;
+  const camera =
+    device.facingMode === "environment" ? "a back camera" : device.facingMode === "user" ? "a front camera" : device.cameraLabel ? "a camera" : null;
+  const named = camera && device.cameraLabel ? `${camera} (${device.cameraLabel})` : camera;
+  const system = [device.platform, device.platformVersion].filter(Boolean).join(" ");
+  const hardware = [device.model, system].filter(Boolean);
+  if (named && hardware.length) return `The page reported ${named} on ${hardware.join(", ")}.`;
+  if (named) return `The page reported ${named}.`;
+  if (hardware.length) return `The page reported ${hardware.join(", ")}.`;
+  return null;
+}
+
 export function captureBlock(input: {
   receivedAt: string;
   cameraReported: boolean;
   location: Gps | null;
   userAgent: string | null;
+  device?: DeviceReport | null;
 }) {
+  const device = input.device ?? null;
   return {
     received_at: input.receivedAt,
     statement: captureStatement(input.receivedAt),
@@ -111,5 +168,15 @@ export function captureBlock(input: {
     longitude: input.location?.longitude ?? null,
     accuracy_m: input.location?.accuracyM ?? null,
     user_agent: input.userAgent,
+    device: device
+      ? {
+          camera_label: device.cameraLabel,
+          facing_mode: device.facingMode,
+          platform: device.platform,
+          platform_version: device.platformVersion,
+          model: device.model,
+          mobile: device.mobile,
+        }
+      : null,
   };
 }

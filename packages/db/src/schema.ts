@@ -418,6 +418,14 @@ export const captureFrames = pgTable("capture_frames", {
   longitude: doublePrecision("longitude"),
   accuracyM: doublePrecision("accuracy_m"),
   cameraReported: boolean("camera_reported").notNull().default(false),
+  deviceReport: jsonb("device_report").$type<{
+    camera_label: string | null;
+    facing_mode: "user" | "environment" | null;
+    platform: string | null;
+    platform_version: string | null;
+    model: string | null;
+    mobile: boolean | null;
+  } | null>(),
   receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

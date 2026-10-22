@@ -11,6 +11,37 @@ type LinkState = {
 
 const MAX_EDGE = 1600;
 
+type DeviceHints = {
+  mobile?: boolean;
+  platform?: string;
+  getHighEntropyValues?: (hints: string[]) => Promise<{ model?: string; platform?: string; platformVersion?: string }>;
+};
+
+async function readDevice(stream: MediaStream | null) {
+  const track = stream?.getVideoTracks()[0];
+  const facing = track?.getSettings?.().facingMode;
+  const hints = (navigator as Navigator & { userAgentData?: DeviceHints }).userAgentData;
+  let high: { model?: string; platform?: string; platformVersion?: string } = {};
+  if (hints?.getHighEntropyValues) {
+    high = await Promise.race([
+      hints.getHighEntropyValues(["model", "platform", "platformVersion"]).catch(() => ({})),
+      new Promise<{}>((resolve) => setTimeout(() => resolve({}), 2000)),
+    ]);
+  }
+  const text = (value: string | undefined) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
+  };
+  return {
+    camera_label: text(track?.label),
+    facing_mode: facing === "user" || facing === "environment" ? facing : null,
+    platform: text(high.platform) ?? text(hints?.platform),
+    platform_version: text(high.platformVersion),
+    model: text(high.model),
+    mobile: typeof hints?.mobile === "boolean" ? hints.mobile : null,
+  };
+}
+
 function fitFrame(video: HTMLVideoElement) {
   const width = video.videoWidth;
   const height = video.videoHeight;
@@ -122,6 +153,7 @@ export function CaptureCamera({ token }: { token: string }) {
       body.set("image", shot, "capture.jpg");
       body.set("nonce", sessionBody.nonce);
       body.set("camera_reported", "true");
+      body.set("device_report", JSON.stringify(await readDevice(streamRef.current)));
       if (includeLocation && navigator.geolocation) {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 });

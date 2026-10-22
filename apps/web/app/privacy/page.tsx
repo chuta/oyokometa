@@ -37,7 +37,9 @@ export default function PrivacyPage() {
           time it arrived, and any location or browser details the device sends. The photo goes through
           the same malware and adult-content checks as other uploads. The signed record says the file
           is unchanged since receipt. Location and camera details are stored as reported by the device.
-          When a location is present, those coordinates may be sent to OpenStreetMap Nominatim to name
+          The record also stores the browser string received with the upload, and any camera name, front or
+          back facing, device model, and platform the page reports. Those details are what the browser
+          reported. They are not a check of the physical camera. When a location is present, those coordinates may be sent to OpenStreetMap Nominatim to name
           the surrounding area. That place name is not part of the signed record. It is not used to
           train a model.
         </li>

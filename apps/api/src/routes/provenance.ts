@@ -27,6 +27,7 @@ import { allowEndpoint } from "../rate-limit.js";
 import { audit } from "../audit.js";
 import { priceChangedResponse, priceConfirmed } from "../price-check.js";
 import { getSigner, verifyRecordSignature } from "../signing/kms.js";
+import { captureDeviceLine } from "../capture.js";
 import { lookupPlace } from "../reverse-geocode.js";
 import { stampRecord } from "../signing/tsa.js";
 import { signEvent, sha256Utf8, verifyEventChain, type EventType } from "../signing/events.js";
@@ -720,6 +721,14 @@ async function publicRecordView(publicId: string, userId: string | null) {
       longitude?: number | null;
       accuracy_m?: number | null;
       user_agent?: string | null;
+      device?: {
+        camera_label?: string | null;
+        facing_mode?: "user" | "environment" | null;
+        platform?: string | null;
+        platform_version?: string | null;
+        model?: string | null;
+        mobile?: boolean | null;
+      } | null;
     };
   };
   const storedCapture = canonical.capture;
@@ -736,6 +745,20 @@ async function publicRecordView(publicId: string, userId: string | null) {
           longitude: isRegistrant ? (storedCapture.longitude ?? null) : null,
           accuracy_m: isRegistrant ? (storedCapture.accuracy_m ?? null) : null,
           user_agent: isRegistrant ? (storedCapture.user_agent ?? null) : null,
+          device_line:
+            isRegistrant && storedCapture.device
+              ? captureDeviceLine({
+                  cameraLabel: storedCapture.device.camera_label ?? null,
+                  facingMode:
+                    storedCapture.device.facing_mode === "user" || storedCapture.device.facing_mode === "environment"
+                      ? storedCapture.device.facing_mode
+                      : null,
+                  platform: storedCapture.device.platform ?? null,
+                  platformVersion: storedCapture.device.platform_version ?? null,
+                  model: storedCapture.device.model ?? null,
+                  mobile: typeof storedCapture.device.mobile === "boolean" ? storedCapture.device.mobile : null,
+                })
+              : null,
           place_label: null as string | null,
         };
   if (capture?.latitude != null && capture.longitude != null) {

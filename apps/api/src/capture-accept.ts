@@ -14,7 +14,7 @@ import { canonicalJson, detectMagic } from "@oyokometa/shared";
 import { decodeImage, moderateAdultContent, perceptualHash, scanMalware, sha256 } from "@oyokometa/worker";
 import { and, eq } from "drizzle-orm";
 import { removeBlob, writeBlob } from "./blob.js";
-import { captureBlock, type Gps } from "./capture.js";
+import { captureBlock, type DeviceReport, type Gps } from "./capture.js";
 import { randomToken } from "./crypto.js";
 import { getSigner } from "./signing/kms.js";
 import { sha256Utf8, signEvent } from "./signing/events.js";
@@ -79,6 +79,7 @@ export async function acceptCaptureFrame(input: {
   buf: Buffer;
   gps: Gps | null;
   cameraReported: boolean;
+  device: DeviceReport | null;
 }): Promise<CaptureSuccess | CaptureFailure> {
   const db = getDb();
   const request = input.request;
@@ -151,6 +152,7 @@ export async function acceptCaptureFrame(input: {
       cameraReported: input.cameraReported,
       location: input.gps,
       userAgent,
+      device: input.device,
     });
     const declarations: Record<string, string> = { capture_prompt: request.prompt };
     if (request.address) declarations.stated_address = request.address;
@@ -246,6 +248,16 @@ export async function acceptCaptureFrame(input: {
       longitude: input.gps?.longitude ?? null,
       accuracyM: input.gps?.accuracyM ?? null,
       cameraReported: input.cameraReported,
+      deviceReport: input.device
+        ? {
+            camera_label: input.device.cameraLabel,
+            facing_mode: input.device.facingMode,
+            platform: input.device.platform,
+            platform_version: input.device.platformVersion,
+            model: input.device.model,
+            mobile: input.device.mobile,
+          }
+        : null,
       receivedAt: new Date(receivedAt),
     });
     await db
