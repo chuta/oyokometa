@@ -22,6 +22,10 @@ export default function HomePage() {
               <strong>Create a record</strong>
               <span>Register the exact bytes you control. Not a claim of authorship.</span>
             </a>
+            <a className="action-card" href="/capture">
+              <strong>Capture a photo</strong>
+              <span>Send a one-time link. The photo is taken in the browser, then signed as received.</span>
+            </a>
             <a className="action-card" href="/verify">
               <strong>Verify a file</strong>
               <span>Check whether a file matches a registered record. A match is of bytes.</span>
@@ -60,8 +64,8 @@ export default function HomePage() {
         <div className="audiences-inner">
           <h2 id="audiences-heading">Who we are building for</h2>
           <p className="audiences-intro">
-            Analyze, Create and Verify are live. Some of the needs below are still ahead of the
-            product. Each one starts with a feature you can use today.
+            Analyze, Create, Capture and Verify are live. Some of the needs below are still ahead of
+            the product. Each one starts with a feature you can use today.
           </p>
           <table className="audience-table">
             <thead>
@@ -144,6 +148,12 @@ const audiences = [
     need: "A way to establish a record before an image is copied or altered",
     action: "Create a record",
     href: "/create",
+  },
+  {
+    audience: "Insurers, lenders and claims teams",
+    need: "A photo taken through a link, with a signed record of the file that arrived",
+    action: "Capture a photo",
+    href: "/capture",
   },
   {
     audience: "Election observers and civic groups",

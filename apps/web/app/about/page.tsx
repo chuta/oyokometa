@@ -96,6 +96,17 @@ export default function AboutPage() {
             </a>
           </article>
           <article className="service-card">
+            <h3>Capture</h3>
+            <p>
+              Send a one-time link so someone can take a photo through the browser camera. The
+              signed record says the file is unchanged since it arrived. It does not prove the
+              camera was physical, or that the scene is what it appears to be.
+            </p>
+            <a className="btn" href="/capture">
+              Capture a Photo
+            </a>
+          </article>
+          <article className="service-card">
             <h3>Verify</h3>
             <p>
               Check whether an image matches an existing Oyokometa provenance record. An exact

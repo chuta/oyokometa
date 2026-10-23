@@ -42,7 +42,7 @@ INLINE_WORKER=true STORAGE_DRIVER=fs pnpm --filter @oyokometa/api dev
 pnpm --filter @oyokometa/web dev
 ```
 
-Open http://localhost:3000 — Analyze, Create a platform-signed record, or Verify a file (JPEG/PNG/WebP/HEIC/TIFF, 25 MB). Published keys: `/.well-known/oyokometa-keys.json`. Offline check: `docs/offline-verification.md`.
+Open http://localhost:3000 — Analyze, Create a platform-signed record, Capture a photo through a one-time link, or Verify a file (JPEG/PNG/WebP/HEIC/TIFF, 25 MB). Published keys: `/.well-known/oyokometa-keys.json`. Offline check: `docs/offline-verification.md`.
 
 Optional: Redis + MinIO + ClamAV (`docker compose --profile full up`) and unset `INLINE_WORKER` so jobs go through BullMQ.
 

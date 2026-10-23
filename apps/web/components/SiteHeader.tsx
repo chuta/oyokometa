@@ -7,6 +7,7 @@ import { AuthBar } from "@/components/AuthBar";
 const PRIMARY = [
   { href: "/analyze", label: "Analyze" },
   { href: "/create", label: "Create" },
+  { href: "/capture", label: "Capture" },
   { href: "/verify", label: "Verify" },
   { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
@@ -16,7 +17,6 @@ const PRIMARY = [
 
 const ACCOUNT = [
   { href: "/sample", label: "Sample" },
-  { href: "/capture", label: "Capture" },
   { href: "/credits", label: "Credits" },
   { href: "/account", label: "Account" },
 ];

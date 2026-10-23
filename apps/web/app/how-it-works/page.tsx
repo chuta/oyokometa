@@ -107,7 +107,20 @@ export default function HowPage() {
       </p>
       <p>An Oyokometa registration is not a C2PA Content Credential, and it is not presented as one.</p>
 
-      <h2 className="text-2xl mt-10 mb-3">4. Verify a file</h2>
+      <h2 className="text-2xl mt-10 mb-3">4. Capture a photo</h2>
+      <p>
+        <a href="/capture">Capture</a> sends a one-time link. The recipient takes the photo in the
+        browser. There is no upload from the gallery. When the file arrives, Oyokometa hashes it
+        and signs a record of that receipt.
+      </p>
+      <p>
+        The signed statement is that the file arrived through that session and is unchanged since
+        then. The camera, the browser and a location, when the person allows it, are reported by
+        the device. They are declarations. A capture does not prove the camera was physical, or
+        that the scene is what it appears to be.
+      </p>
+
+      <h2 className="text-2xl mt-10 mb-3">5. Verify a file</h2>
       <p>
         <a href="/verify">Verify</a> compares a file with an Oyokometa provenance record. No account
         is required.
@@ -143,6 +156,10 @@ export default function HowPage() {
           A platform-signed registration is not a legal finding, and it is not proof that a record
           would be admissible in court.
         </li>
+        <li>
+          A capture confirms the file is unchanged since it arrived. It does not confirm that the
+          camera was physical, or that the scene is what it appears to be.
+        </li>
       </ul>
 
       <h2 className="text-2xl mt-10 mb-3">Built around evidence, not assumptions</h2>
@@ -151,7 +168,10 @@ export default function HowPage() {
         share and verify. The report shows what the evidence supports, separates that from what the
         analysis suggests, and leaves uncertainty visible.
       </p>
-      <p className="mt-4">Analyze the image. Understand the evidence. Create a record. Verify the match.</p>
+      <p className="mt-4">
+        Analyze the image. Understand the evidence. Create a record. Capture a photo. Verify the
+        match.
+      </p>
     </article>
   );
 }
