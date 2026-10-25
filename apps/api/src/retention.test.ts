@@ -10,6 +10,7 @@ const chain = {
 vi.mock("@oyokometa/db", () => ({
   getDb: () => ({ select: () => chain }),
   assets: { imageDeletedAt: "image_deleted_at", retainUntil: "retain_until" },
+  civicEvidenceItems: { assetId: "asset_id" },
   analysisJobs: {
     id: "id",
     ownerUserId: "owner_user_id",
@@ -43,7 +44,7 @@ describe("retention", () => {
   });
 
   it("deletes expired bytes and anonymous analyses, then audits the run", async () => {
-    queue.push([{ id: "a1" }, { id: "a2" }], [{ id: "j1" }]);
+    queue.push([{ id: "a1" }, { id: "a2" }], [], [{ id: "j1" }]);
     const result = await runRetention(new Date());
     expect(purgeAssetBytes).toHaveBeenCalledTimes(2);
     expect(purgeJob).toHaveBeenCalledWith("j1");
@@ -59,11 +60,19 @@ describe("retention", () => {
 
   it("keeps going when one asset fails and does not audit an empty run", async () => {
     purgeAssetBytes.mockRejectedValueOnce(new Error("disk"));
-    queue.push([{ id: "a1" }], []);
+    queue.push([{ id: "a1" }], [], []);
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const result = await runRetention(new Date());
     expect(result).toEqual({ bytes_deleted: 0, anonymous_analyses_purged: 0 });
     expect(audit).not.toHaveBeenCalled();
     errSpy.mockRestore();
+  });
+
+  it("leaves a civic-linked file in place", async () => {
+    queue.push([{ id: "civic-asset" }, { id: "other" }], [{ assetId: "civic-asset" }], []);
+    const result = await runRetention(new Date());
+    expect(purgeAssetBytes).toHaveBeenCalledTimes(1);
+    expect(purgeAssetBytes).toHaveBeenCalledWith({ id: "other" });
+    expect(result.bytes_deleted).toBe(1);
   });
 });

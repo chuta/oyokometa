@@ -12,9 +12,11 @@ async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> })
   const cookie = req.headers.get("cookie");
   const contentType = req.headers.get("content-type");
   const idem = req.headers.get("idempotency-key");
+  const receipt = req.headers.get("x-civic-receipt");
   if (cookie) headers.set("cookie", cookie);
   if (contentType) headers.set("content-type", contentType);
   if (idem) headers.set("idempotency-key", idem);
+  if (receipt) headers.set("x-civic-receipt", receipt.slice(0, 200));
   headers.set("x-forwarded-for", req.headers.get("x-forwarded-for") ?? "127.0.0.1");
 
   const init: RequestInit = {

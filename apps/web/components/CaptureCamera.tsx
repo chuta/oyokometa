@@ -2,11 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 
+type CaptureNotice = {
+  purpose: string;
+  collects: string;
+  location: string;
+  access: string;
+  publication: string;
+  decline: string;
+  limits: string;
+};
+
 type LinkState = {
   prompt: string | null;
   address: string | null;
   status: string;
   expires_at: string;
+  civic?: boolean;
+  notice?: CaptureNotice | null;
 };
 
 const MAX_EDGE = 1600;
@@ -67,6 +79,8 @@ export function CaptureCamera({ token }: { token: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [armed, setArmed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -87,8 +101,10 @@ export function CaptureCamera({ token }: { token: string }) {
     };
   }, [token]);
 
+  const cameraOpen = Boolean(link && (link.status === "open" || link.status === "capturing") && (!link.civic || armed));
+
   useEffect(() => {
-    if (!link || (link.status !== "open" && link.status !== "capturing")) return;
+    if (!cameraOpen) return;
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError("This link needs a camera. Open it on a phone.");
       return;
@@ -108,7 +124,7 @@ export function CaptureCamera({ token }: { token: string }) {
     return () => {
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, [link]);
+  }, [cameraOpen]);
 
   useEffect(() => {
     return () => {
@@ -200,6 +216,37 @@ export function CaptureCamera({ token }: { token: string }) {
           ? "This link has already been used."
           : "This link can no longer be used.";
     return <p role="status">{note}</p>;
+  }
+
+  if (link.civic && !armed) {
+    const notice = link.notice;
+    return (
+      <div className="intake">
+        <h2>Before you open the camera</h2>
+        <p>{notice?.purpose ?? link.prompt}</p>
+        {link.address ? <p>{link.address}</p> : null}
+        {notice ? (
+          <>
+            <p>{notice.collects}</p>
+            <p>{notice.location}</p>
+            <p>{notice.access}</p>
+            <p>{notice.publication}</p>
+            <p>{notice.limits}</p>
+            <p>{notice.decline}</p>
+          </>
+        ) : (
+          <p role="alert">This photo request needs a confirmation before the camera opens. Refresh the page.</p>
+        )}
+        <label>
+          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} /> I understand the photo stays with this review, and that location is optional.
+        </label>
+        <p className="intake-actions">
+          <button className="btn" type="button" disabled={!accepted || !notice} onClick={() => setArmed(true)}>
+            Open camera
+          </button>
+        </p>
+      </div>
+    );
   }
 
   return (

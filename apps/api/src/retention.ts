@@ -1,5 +1,5 @@
-import { and, isNotNull, isNull, lt } from "drizzle-orm";
-import { getDb, analysisJobs, assets } from "@oyokometa/db";
+import { and, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { analysisJobs, assets, civicEvidenceItems, getDb } from "@oyokometa/db";
 import { audit } from "./audit.js";
 import { purgeAssetBytes, purgeJob } from "./purge.js";
 
@@ -23,8 +23,18 @@ export async function runRetention(now = new Date()) {
     .from(assets)
     .where(and(isNull(assets.imageDeletedAt), lt(assets.retainUntil, cut.assetsExpiredBefore)))
     .limit(BATCH);
+  const heldIds = new Set<string>();
+  if (expired.length) {
+    const held = await db
+      .select({ assetId: civicEvidenceItems.assetId })
+      .from(civicEvidenceItems)
+      .where(inArray(civicEvidenceItems.assetId, expired.map((asset) => asset.id)))
+      .limit(BATCH);
+    for (const row of held) if (row.assetId) heldIds.add(row.assetId);
+  }
   let bytesDeleted = 0;
   for (const asset of expired) {
+    if (heldIds.has(asset.id)) continue;
     try {
       await purgeAssetBytes(asset);
       bytesDeleted += 1;

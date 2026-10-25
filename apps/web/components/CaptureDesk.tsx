@@ -11,6 +11,8 @@ type RequestRow = {
   expires_at: string;
   created_at: string;
   record_public_id: string | null;
+  case_linked?: boolean;
+  case_reference?: string | null;
 };
 
 type Created = RequestRow & { link: string | null; cost?: number; balance?: number; duplicate?: boolean };
@@ -188,6 +190,17 @@ export function CaptureDesk() {
               <p>
                 {row.status} · expires {new Date(row.expires_at).toLocaleString()}
               </p>
+              {row.case_linked ? (
+                <p>
+                  Civic case link. No credits were held.
+                  {row.case_reference ? (
+                    <>
+                      {" "}
+                      <a href={`/civic/desk/${row.case_reference}`}>{row.case_reference}</a>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
               {row.record_public_id ? (
                 <p>
                   <a href={`/verify/${row.record_public_id}`}>Open the signed record</a>

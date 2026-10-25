@@ -15,6 +15,7 @@ import { decodeImage, moderateAdultContent, perceptualHash, scanMalware, sha256 
 import { and, eq } from "drizzle-orm";
 import { removeBlob, writeBlob } from "./blob.js";
 import { captureBlock, type DeviceReport, type Gps } from "./capture.js";
+import { linkCivicCaptureEvidence, recordCivicCaptureEvent } from "./civic-capture.js";
 import { randomToken } from "./crypto.js";
 import { getSigner } from "./signing/kms.js";
 import { sha256Utf8, signEvent } from "./signing/events.js";
@@ -276,6 +277,24 @@ export async function acceptCaptureFrame(input: {
       .update(captureSessions)
       .set({ consumedAt: new Date() })
       .where(eq(captureSessions.id, input.session.id));
+    if (request.caseId) {
+      await linkCivicCaptureEvidence({
+        caseId: request.caseId,
+        requestId: request.id,
+        ownerUserId: request.ownerUserId,
+        recordId,
+        publicId,
+        assetId: asset.id,
+        sha256: hash,
+        mime: magic.mime,
+        byteSize: input.buf.length,
+        prompt: request.prompt,
+        referenceCode: request.referenceCode,
+        hasLocation: Boolean(input.gps),
+      }).catch((err) => {
+        console.error(JSON.stringify({ msg: "civic_capture_link_failed", error: String(err) }));
+      });
+    }
     return { ok: true, publicId };
   } catch (err) {
     const code = classify(err);
@@ -287,6 +306,17 @@ export async function acceptCaptureFrame(input: {
         .update(captureRequests)
         .set({ status: "refused", updatedAt: new Date() })
         .where(eq(captureRequests.id, request.id));
+      if (request.caseId) {
+        await recordCivicCaptureEvent({
+          caseId: request.caseId,
+          actorId: null,
+          eventType: "civic.capture.refused",
+          requestId: request.id,
+          metadata: { capture_reference: request.referenceCode },
+        }).catch((err) => {
+          console.error(JSON.stringify({ msg: "civic_capture_audit_failed", error: String(err) }));
+        });
+      }
       await db
         .update(captureSessions)
         .set({ consumedAt: new Date() })

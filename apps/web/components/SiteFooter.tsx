@@ -15,6 +15,7 @@ export function SiteFooter() {
           <a href="/create">Create</a>
           <a href="/capture">Capture</a>
           <a href="/verify">Verify</a>
+          <a href="/civic">Civic Evidence</a>
           <a href="/how-it-works">How it works</a>
           <a href="/services">Services</a>
           <a href="/about">About</a>

@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import {
   CAPTURE_CAMERA_LINE,
   CAPTURE_LOCATION_LINE,
@@ -9,6 +9,19 @@ import { sha256Hex } from "./crypto.js";
 
 export const CAPTURE_ACTION = "capture_request";
 export const NONCE_TTL_MS = 10 * 60 * 1000;
+const CAPTURE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function captureReferenceCode() {
+  const bytes = randomBytes(8);
+  let out = "OKM-C";
+  for (const b of bytes) out += CAPTURE_ALPHABET[b % CAPTURE_ALPHABET.length];
+  return out;
+}
+
+/** A civic case link is free. Every other capture link holds credits. */
+export function captureRequiresHold(caseId: string | null | undefined) {
+  return typeof caseId !== "string" || caseId.length === 0;
+}
 export const DEFAULT_EXPIRY_HOURS = 72;
 export const PROCESSING_STALE_MS = 2 * 60 * 1000;
 const KEY_RE = /^[A-Za-z0-9_-]{8,80}$/;

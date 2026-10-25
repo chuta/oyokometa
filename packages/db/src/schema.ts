@@ -348,6 +348,200 @@ export const provenanceRecords = pgTable(
   ],
 );
 
+export const civicCases = pgTable(
+  "civic_cases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    publicReference: text("public_reference").notNull().unique(),
+    idempotencyKey: text("idempotency_key").unique(),
+    caseType: text("case_type").notNull(),
+    title: text("title").notNull(),
+    claimText: text("claim_text").notNull(),
+    claimSourceUrl: text("claim_source_url"),
+    claimedEventAt: timestamp("claimed_event_at", { withTimezone: true }),
+    claimedEventTimePrecision: text("claimed_event_time_precision").notNull().default("unknown"),
+    claimedLocationText: text("claimed_location_text"),
+    locationPrecision: text("location_precision").notNull().default("unknown"),
+    electionOrEvent: text("election_or_event"),
+    state: text("state"),
+    lga: text("lga"),
+    ward: text("ward"),
+    pollingUnitCode: text("polling_unit_code"),
+    contributorId: uuid("contributor_id").references(() => users.id, { onDelete: "set null" }),
+    workflowStatus: text("workflow_status").notNull().default("received"),
+    claimAssessment: text("claim_assessment"),
+    assessmentRationale: text("assessment_rationale"),
+    publicationState: text("publication_state").notNull().default("private"),
+    sensitivityLevel: text("sensitivity_level").notNull().default("standard"),
+    identityRestricted: boolean("identity_restricted").notNull().default(true),
+    incidentCategory: text("incident_category"),
+    observationBasis: text("observation_basis"),
+    contributorEmail: text("contributor_email"),
+    contributorSessionId: uuid("contributor_session_id").references(() => anonymousSessions.id, { onDelete: "set null" }),
+    receiptTokenHash: text("receipt_token_hash").unique(),
+    ipHash: text("ip_hash"),
+    assignedReviewerId: uuid("assigned_reviewer_id").references(() => users.id, { onDelete: "set null" }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    reopenedAt: timestamp("reopened_at", { withTimezone: true }),
+    currentPublicVersionId: uuid("current_public_version_id"),
+    ...ts,
+  },
+  (t) => [
+    index("civic_cases_status_idx").on(t.workflowStatus, t.createdAt),
+    index("civic_cases_contributor_idx").on(t.contributorId),
+    index("civic_cases_reviewer_idx").on(t.assignedReviewerId),
+  ],
+);
+
+export const civicEvidenceItems = pgTable(
+  "civic_evidence_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    evidenceType: text("evidence_type").notNull(),
+    captureRecordId: uuid("capture_record_id").references(() => provenanceRecords.id),
+    assetId: uuid("asset_id").references(() => assets.id),
+    sourceUrl: text("source_url"),
+    sourceType: text("source_type"),
+    fileNameDisplay: text("file_name_display"),
+    mimeType: text("mime_type"),
+    fileSize: integer("file_size"),
+    sha256: text("sha256"),
+    integrityState: text("integrity_state"),
+    technicalSummary: jsonb("technical_summary").$type<Record<string, unknown>>(),
+    declarationJson: jsonb("declaration_json").$type<Record<string, unknown>>(),
+    accessClassification: text("access_classification").notNull().default("restricted"),
+    publicRedactionState: text("public_redaction_state").notNull().default("private"),
+    addedBy: uuid("added_by").references(() => users.id, { onDelete: "set null" }),
+    ...ts,
+  },
+  (t) => [index("civic_evidence_case_idx").on(t.caseId, t.createdAt)],
+);
+
+export const civicSources = pgTable(
+  "civic_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    evidenceItemId: uuid("evidence_item_id").references(() => civicEvidenceItems.id),
+    url: text("url"),
+    title: text("title"),
+    publisherOrOrigin: text("publisher_or_origin"),
+    sourceType: text("source_type").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    accessedAt: timestamp("accessed_at", { withTimezone: true }),
+    archivedReference: text("archived_reference"),
+    independenceAssessment: text("independence_assessment"),
+    reliabilityNotes: text("reliability_notes"),
+    addedBy: uuid("added_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("civic_sources_case_idx").on(t.caseId)],
+);
+
+export const civicReviews = pgTable(
+  "civic_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    reviewerId: uuid("reviewer_id").references(() => users.id, { onDelete: "set null" }),
+    reviewStage: text("review_stage").notNull(),
+    proposedAssessment: text("proposed_assessment"),
+    rationale: text("rationale").notNull(),
+    limitations: text("limitations"),
+    alternativeExplanations: text("alternative_explanations"),
+    reviewChecklistJson: jsonb("review_checklist_json").$type<Record<string, unknown>>(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    ...ts,
+  },
+  (t) => [index("civic_reviews_case_idx").on(t.caseId, t.createdAt)],
+);
+
+export const civicEvidenceAssessments = pgTable(
+  "civic_evidence_assessments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    evidenceItemId: uuid("evidence_item_id")
+      .notNull()
+      .references(() => civicEvidenceItems.id),
+    relationship: text("relationship").notNull(),
+    statement: text("statement").notNull(),
+    basis: text("basis"),
+    reviewerId: uuid("reviewer_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("civic_evidence_assessments_case_idx").on(t.caseId)],
+);
+
+export const civicCaseVersions = pgTable(
+  "civic_case_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    versionNumber: integer("version_number").notNull(),
+    publicPayload: jsonb("public_payload").$type<Record<string, unknown>>().notNull(),
+    assessment: text("assessment").notNull(),
+    rationale: text("rationale").notNull(),
+    publishedBy: uuid("published_by").references(() => users.id, { onDelete: "set null" }),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    changeReason: text("change_reason").notNull(),
+    supersedesVersionId: uuid("supersedes_version_id"),
+    idempotencyKey: text("idempotency_key").unique(),
+  },
+  (t) => [uniqueIndex("civic_case_versions_number_idx").on(t.caseId, t.versionNumber)],
+);
+
+export const civicAuditEvents = pgTable(
+  "civic_audit_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    eventType: text("event_type").notNull(),
+    targetType: text("target_type"),
+    targetId: uuid("target_id"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    reason: text("reason"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  },
+  (t) => [index("civic_audit_events_case_idx").on(t.caseId, t.occurredAt)],
+);
+
+export const civicAppeals = pgTable(
+  "civic_appeals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => civicCases.id),
+    publicVersionId: uuid("public_version_id").references(() => civicCaseVersions.id),
+    submittedBy: uuid("submitted_by").references(() => users.id, { onDelete: "set null" }),
+    reason: text("reason").notNull(),
+    supportingEvidenceReference: text("supporting_evidence_reference"),
+    status: text("status").notNull().default("open"),
+    assignedEditorId: uuid("assigned_editor_id").references(() => users.id, { onDelete: "set null" }),
+    resolution: text("resolution"),
+    idempotencyKey: text("idempotency_key").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (t) => [index("civic_appeals_case_idx").on(t.caseId, t.createdAt)],
+);
+
 export const provenanceEvents = pgTable("provenance_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   recordId: uuid("record_id")
@@ -379,9 +573,13 @@ export const captureRequests = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     provenanceRecordId: uuid("provenance_record_id").references(() => provenanceRecords.id),
     assetId: uuid("asset_id").references(() => assets.id),
+    caseId: uuid("case_id").references(() => civicCases.id),
     ...ts,
   },
-  (t) => [index("capture_requests_owner_idx").on(t.ownerUserId, t.createdAt)],
+  (t) => [
+    index("capture_requests_owner_idx").on(t.ownerUserId, t.createdAt),
+    index("capture_requests_case_idx").on(t.caseId),
+  ],
 );
 
 export const captureSessions = pgTable(

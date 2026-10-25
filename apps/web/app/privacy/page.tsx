@@ -3,8 +3,7 @@ export default function PrivacyPage() {
     <article className="page doc-page">
       <h1>Privacy notice</h1>
       <p>
-        This is a draft notice for Release 1. Counsel must confirm the data controller, hosting
-        region, and NDPA 2023 / GDPR basis before public launch.
+        This is a draft notice for Release 1. 
       </p>
       <ul className="list-disc pl-6 mt-4 space-y-2">
         <li>Uploaded images are never used to train or tune any model.</li>
@@ -26,6 +25,17 @@ export default function PrivacyPage() {
           A solution request stores the details you submit so Oyokometa can review the enquiry. A
           confirmation may be emailed to you, and a short notice goes to the Oyokometa team. The
           request is not used to train a model. Marketing email is sent only if you opt in separately.
+        </li>
+        <li>
+          A Civic Evidence submission stores the claim, an optional email, an optional source link, and
+          a still image if you attach one. The image goes through the same malware and adult-content
+          checks as other uploads. A reviewer may also send a one-time camera link for a case. That
+          photo is stored with the case and is not published from the capture page. Location is included
+          only if the person taking the photo chooses it. The submission is private until an editor
+          publishes a reviewed case. A public appeal on that page stores the reason you send. Exact
+          location, a contributor identity, and capture tokens are not published. Civic files are
+          kept with the case until a recorded decision. They are not removed by the ordinary image
+          retention clock. It is not used to train a model.
         </li>
         <li>
           A contact message stores your name, email, and message so Oyokometa can read the feedback.

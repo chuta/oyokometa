@@ -9,6 +9,7 @@ const PRIMARY = [
   { href: "/create", label: "Create" },
   { href: "/capture", label: "Capture" },
   { href: "/verify", label: "Verify" },
+  { href: "/civic", label: "Civic" },
   { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
   { href: "/how-it-works", label: "How it works" },

@@ -25,12 +25,20 @@ export function AuthBar() {
       </span>
     );
   }
-  if (me.user.role !== "admin") return null;
+  const desk = me.user.role === "reviewer" || me.user.role === "editor";
+  if (me.user.role !== "admin" && !desk) return null;
   return (
     <span className="auth-user">
-      <a href="/admin" className="btn btn-ghost btn-compact">
-        Admin
-      </a>
+      {desk ? (
+        <a href="/civic/desk" className="btn btn-ghost btn-compact">
+          Case photos
+        </a>
+      ) : null}
+      {me.user.role === "admin" ? (
+        <a href="/admin" className="btn btn-ghost btn-compact">
+          Admin
+        </a>
+      ) : null}
     </span>
   );
 }

@@ -1,6 +1,5 @@
-import { randomBytes } from "node:crypto";
 import { Hono } from "hono";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { ERROR_CODES, LIMITS } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
@@ -8,6 +7,7 @@ import {
   captureHold,
   captureRequests,
   captureSessions,
+  civicCases,
   ensureWallet,
   getDb,
   holdCredits,
@@ -18,27 +18,21 @@ import { acceptCaptureFrame } from "../capture-accept.js";
 import {
   CAPTURE_ACTION,
   NONCE_TTL_MS,
+  captureReferenceCode,
   nonceMatches,
   parseCaptureCreate,
   parseDeviceReport,
   parseGps,
   requestCanAcceptFrame,
 } from "../capture.js";
+import { markCaptureCancelled, markCaptureExpired } from "../civic-capture.js";
+import { civicCaptureNotice } from "../civic.js";
 import { randomToken, sha256Hex } from "../crypto.js";
 import { publicAppOrigin } from "../origin.js";
 import { priceChangedResponse, priceConfirmed } from "../price-check.js";
 import { allowEndpoint } from "../rate-limit.js";
 import { notFound } from "../session.js";
 import { audit } from "../audit.js";
-
-const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-function referenceCode() {
-  const bytes = randomBytes(8);
-  let out = "OKM-C";
-  for (const b of bytes) out += ALPHABET[b % ALPHABET.length];
-  return out;
-}
 
 function linkFor(token: string) {
   return `${publicAppOrigin()}/c/${token}`;
@@ -49,12 +43,8 @@ type RequestRow = typeof captureRequests.$inferSelect;
 async function expireIfNeeded(row: RequestRow) {
   if ((row.status !== "open" && row.status !== "capturing") || row.expiresAt > new Date()) return row;
   await releaseHold(row.id, "system:capture-expiry");
-  const db = getDb();
-  await db
-    .update(captureRequests)
-    .set({ status: "expired", updatedAt: new Date() })
-    .where(and(eq(captureRequests.id, row.id), inArray(captureRequests.status, ["open", "capturing"])));
-  return { ...row, status: "expired" };
+  const updated = await markCaptureExpired(row.id);
+  return updated ?? { ...row, status: "expired" };
 }
 
 async function byToken(token: string) {
@@ -69,12 +59,15 @@ async function byToken(token: string) {
 }
 
 function publicState(row: RequestRow) {
+  const open = row.status === "open" || row.status === "capturing";
   return {
     reference: row.referenceCode,
-    prompt: row.status === "open" || row.status === "capturing" ? row.prompt : null,
-    address: row.status === "open" || row.status === "capturing" ? row.address : null,
+    prompt: open ? row.prompt : null,
+    address: open ? row.address : null,
     status: row.status,
     expires_at: row.expiresAt,
+    civic: Boolean(row.caseId),
+    notice: row.caseId && open ? civicCaptureNotice(row.prompt) : null,
   };
 }
 
@@ -90,6 +83,15 @@ async function ownerPayload(row: RequestRow) {
     recordPublicId = record?.publicId ?? null;
   }
   if (row.status === "completed") await captureHold(row.id, row.ownerUserId);
+  let caseReference: string | null = null;
+  if (row.caseId) {
+    const [civic] = await db
+      .select({ reference: civicCases.publicReference })
+      .from(civicCases)
+      .where(eq(civicCases.id, row.caseId))
+      .limit(1);
+    caseReference = civic?.reference ?? null;
+  }
   return {
     id: row.id,
     reference: row.referenceCode,
@@ -99,6 +101,8 @@ async function ownerPayload(row: RequestRow) {
     expires_at: row.expiresAt,
     created_at: row.createdAt,
     record_public_id: recordPublicId,
+    case_linked: Boolean(row.caseId),
+    case_reference: caseReference,
   };
 }
 
@@ -136,7 +140,7 @@ captureRoutes.post("/captures", async (c) => {
     await db.insert(captureRequests).values({
       id,
       ownerUserId: auth.user.id,
-      referenceCode: referenceCode(),
+      referenceCode: captureReferenceCode(),
       idempotencyKey: parsed.value.idempotencyKey,
       tokenHash: sha256Hex(token),
       prompt: parsed.value.prompt,
@@ -217,10 +221,7 @@ captureRoutes.post("/captures/:id/cancel", async (c) => {
     return c.json(apiError(ERROR_CODES.conflict, "This link can no longer be cancelled.", auth.requestId), 409);
   }
   await releaseHold(row.id, auth.user.id);
-  await db
-    .update(captureRequests)
-    .set({ status: "cancelled", updatedAt: new Date() })
-    .where(and(eq(captureRequests.id, row.id), inArray(captureRequests.status, ["open", "capturing"])));
+  await markCaptureCancelled(row.id, auth.user.id);
   const [next] = await db.select().from(captureRequests).where(eq(captureRequests.id, row.id)).limit(1);
   return c.json(await ownerPayload(next ?? { ...row, status: "cancelled" }));
 });

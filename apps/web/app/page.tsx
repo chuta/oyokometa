@@ -60,12 +60,53 @@ export default function HomePage() {
           higher one.
         </p>
       </section>
+      <section className="civic-band" aria-labelledby="civic-heading">
+        <div className="audiences-inner">
+          <h2 id="civic-heading">Civic Evidence</h2>
+          <article className="civic-feature">
+            <div className="civic-feature-lead">
+              <p className="kicker">For everyone</p>
+              <h3>See something questionable? Submit the claim. Preserve the evidence. Help us check it.</h3>
+            </div>
+            <div className="civic-feature-copy">
+              <p>
+                Anyone can send a claim about a viral image, a polling-unit result sheet, or an
+                incident. Oyokometa keeps the file that arrived. A person reviews it before anything
+                is published.
+              </p>
+              <p>
+                It is not an election authority and it does not declare winners. A signature shows
+                that a file matches a record. It does not show that a caption, a place, or an event
+                is true.
+              </p>
+              <p>Submissions stay private until an editor publishes a reviewed case. There is no feed of unreviewed claims.</p>
+            </div>
+          </article>
+          <div className="civic-paths">
+            <a className="civic-path" href="/civic/viral">
+              <strong>Check a post</strong>
+              <span>A viral photo or a caption. Send the claim, a link, and a still image if you have one.</span>
+            </a>
+            <a className="civic-path" href="/civic/result-sheet">
+              <strong>Check a sheet</strong>
+              <span>A polling-unit result sheet. The figures you send are not official results.</span>
+            </a>
+            <a className="civic-path" href="/civic/incident">
+              <strong>Report an incident</strong>
+              <span>What you witnessed, were told, or saw online. Do not take a risk to collect it.</span>
+            </a>
+          </div>
+          <p className="civic-band-note">
+            <a href="/civic">Open Civic Evidence</a> for the method, safety notes, and reviewed cases.
+          </p>
+        </div>
+      </section>
       <section className="audiences" aria-labelledby="audiences-heading">
         <div className="audiences-inner">
           <h2 id="audiences-heading">Who we are building for</h2>
           <p className="audiences-intro">
-            Analyze, Create, Capture and Verify are live. Some of the needs below are still ahead of
-            the product. Each one starts with a feature you can use today.
+            Analyze, Create, Capture, Verify and Civic Evidence are live. Some of the needs below are
+            still ahead of the product. Each one starts with a feature you can use today.
           </p>
           <table className="audience-table">
             <thead>
@@ -89,35 +130,6 @@ export default function HomePage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-      <section className="roadmap" aria-labelledby="roadmap-heading">
-        <div className="audiences-inner">
-          <h2 id="roadmap-heading">Coming soon</h2>
-          <article className="soon-card">
-            <div className="soon-lead">
-              <p className="kicker">Location</p>
-              <h3>A Nigerian Digital Postcode from the file</h3>
-            </div>
-            <div className="soon-copy">
-              <p>
-                When a file still carries location metadata, Oyokometa will resolve it to a Digital
-                Postcode: state, local government area, and the distance to the nearest registered
-                building. Someone registering a record will be able to declare a postcode and see
-                whether that declaration agrees with the metadata.
-              </p>
-              <p>
-                This is aimed at journalists, observers and investigators who receive files that
-                still hold location metadata. Images forwarded through chat and social apps usually
-                do not. Location metadata can be edited or removed before the file reaches us, so a
-                postcode is not proof of where the picture was taken.
-              </p>
-              <p className="soon-note">
-                <a href="/analyze">Analyze an image</a> already reads the metadata in the file.
-                Postcode resolution is not available yet.
-              </p>
-            </div>
-          </article>
         </div>
       </section>
     </>
@@ -157,9 +169,9 @@ const audiences = [
   },
   {
     audience: "Election observers and civic groups",
-    need: "Rapid, non-partisan checks that can be shared publicly",
-    action: "Check an image",
-    href: "/check",
+    need: "A claim, a file, and a reviewed public note. Not an election result.",
+    action: "Civic Evidence",
+    href: "/civic",
   },
   {
     audience: "Enterprises: banks, insurers, marketplaces, platforms",

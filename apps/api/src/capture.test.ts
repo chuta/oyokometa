@@ -1,6 +1,6 @@
 import { FORBIDDEN_COPY, captureStatement, formatCaptureTime } from "@oyokometa/config";
 import { describe, expect, it } from "vitest";
-import { captureBlock, captureDeviceLine, nonceMatches, parseCaptureCreate, parseDeviceReport, parseGps, requestCanAcceptFrame } from "./capture.js";
+import { captureBlock, captureDeviceLine, captureReferenceCode, captureRequiresHold, nonceMatches, parseCaptureCreate, parseDeviceReport, parseGps, requestCanAcceptFrame } from "./capture.js";
 import { sha256Hex } from "./crypto.js";
 
 describe("parseCaptureCreate", () => {
@@ -124,5 +124,15 @@ describe("capture session", () => {
     expect(requestCanAcceptFrame("refused", new Date(now))).toBe(false);
     expect(requestCanAcceptFrame("processing", new Date(now - 10_000), now)).toBe(false);
     expect(requestCanAcceptFrame("processing", new Date(now - 130_000), now)).toBe(true);
+    expect(requestCanAcceptFrame("expired", new Date(now))).toBe(false);
+    expect(requestCanAcceptFrame("cancelled", new Date(now))).toBe(false);
+  });
+
+  it("holds credits only when the link is not attached to a case", () => {
+    expect(captureRequiresHold(null)).toBe(true);
+    expect(captureRequiresHold(undefined)).toBe(true);
+    expect(captureRequiresHold("")).toBe(true);
+    expect(captureRequiresHold("case-id")).toBe(false);
+    expect(captureReferenceCode()).toMatch(/^OKM-C[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/);
   });
 });
