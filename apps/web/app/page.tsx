@@ -3,16 +3,27 @@ export default function HomePage() {
     <>
       <section className="hero">
         <div className="hero-inner">
-          <p className="kicker">Image provenance</p>
-          <h1>What can this image tell you?</h1>
-          <p className="lede">
-            An image can tell a story its file does not. See what can be established, what has been
-            detected, and what remains uncertain.
-          </p>
-          <p className="lede lede-follow">
-            There is no real or fake verdict, and no authenticity score. The evidence and its limits
-            stay visible.
-          </p>
+          <div className="hero-stage">
+            <div className="hero-copy">
+              <p className="kicker">Image provenance</p>
+              <h1>What can this image tell you?</h1>
+              <p className="lede">
+                An image can tell a story its file does not. See what can be established, what has been
+                detected, and what remains uncertain.
+              </p>
+              <p className="lede lede-follow">
+                There is no real or fake verdict, and no authenticity score. The evidence and its limits
+                stay visible.
+              </p>
+            </div>
+            <img
+              className="hero-illustration"
+              src="/hero-observers.webp"
+              alt="Oyokometa volunteers on election monitoring duty, reviewing a polling-unit observation form"
+              width={1280}
+              height={927}
+            />
+          </div>
           <div className="hero-actions">
             <a className="action-card primary" href="/analyze">
               <strong>Analyze an image</strong>
