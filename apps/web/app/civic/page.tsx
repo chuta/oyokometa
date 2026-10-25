@@ -26,8 +26,8 @@ export default function CivicPage() {
       </header>
       <div className="platform-grid">
         <article className="service-card">
-          <h2>Check a viral photo or video</h2>
-          <p>Send the claim, a link to the post, and a still image if you have one. Video files are not accepted.</p>
+          <h2>Check a viral photo</h2>
+          <p>Still images only. If the claim is about a video, send the link to the post. Do not upload a video file.</p>
           <a className="btn" href="/civic/viral">
             Check a post
           </a>

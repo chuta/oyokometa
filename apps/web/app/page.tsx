@@ -85,7 +85,7 @@ export default function HomePage() {
           <div className="civic-paths">
             <a className="civic-path" href="/civic/viral">
               <strong>Check a post</strong>
-              <span>A viral photo or a caption. Send the claim, a link, and a still image if you have one.</span>
+              <span>A viral photo or a caption. Still images only. For a video, send the link.</span>
             </a>
             <a className="civic-path" href="/civic/result-sheet">
               <strong>Check a sheet</strong>

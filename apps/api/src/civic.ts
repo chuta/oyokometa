@@ -142,19 +142,28 @@ export function parseCivicCaptureRequest(body: unknown): { ok: true; value: Civi
   return { ok: true, value: { prompt, address: addressRaw || null, expiresInHours: hours, idempotencyKey: key } };
 }
 
+export function isRestrictedCivicCase(row: { sensitivityLevel: string }) {
+  return row.sensitivityLevel === "restricted";
+}
+
 export function canReadCivicCase(actor: CivicActor | null, row: CivicCaseGate) {
   if (!actor) return false;
   if (row.contributorId && actor.id === row.contributorId) return true;
+  if (isRestrictedCivicCase(row)) {
+    if (actor.role === "reviewer" || actor.role === "editor") return actor.id === row.assignedReviewerId;
+    if (actor.role === "trust-and-safety") return true;
+    return false;
+  }
   if (actor.role === "reviewer") return actor.id === row.assignedReviewerId;
   if (actor.role === "editor") return actor.id === row.assignedReviewerId || EDITOR_QUEUE.has(row.workflowStatus);
-  if (actor.role === "trust-and-safety") return row.sensitivityLevel === "sensitive" || row.sensitivityLevel === "restricted";
+  if (actor.role === "trust-and-safety") return row.sensitivityLevel === "sensitive";
   return false;
 }
 
 export function canSeeContributorIdentity(actor: CivicActor | null, row: CivicCaseGate) {
   if (!actor) return false;
   if (row.contributorId && actor.id === row.contributorId) return true;
-  if (row.identityRestricted) return false;
+  if (isRestrictedCivicCase(row) || row.identityRestricted) return false;
   if (actor.role === "reviewer") return actor.id === row.assignedReviewerId;
   if (actor.role === "editor") return canReadCivicCase(actor, row);
   return false;
@@ -177,7 +186,12 @@ const KEY_RE = /^[A-Za-z0-9_-]{8,80}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const INCIDENT_CATEGORIES = ["intimidation", "vote_buying", "obstruction", "violence", "campaign_rule", "access", "other"] as const;
-const OBSERVATION_BASIS = ["witnessed", "told", "online"] as const;
+export const OBSERVATION_BASIS = ["witnessed", "told", "online"] as const;
+export const OBSERVATION_BASIS_LABEL: Record<(typeof OBSERVATION_BASIS)[number], string> = {
+  witnessed: "I witnessed this directly",
+  told: "I am reporting information received from someone else",
+  online: "I found this online",
+};
 
 export type CivicSubmission = {
   caseType: (typeof CIVIC_CASE_TYPES)[number];
@@ -186,7 +200,8 @@ export type CivicSubmission = {
   title: string;
   sourceUrl: string | null;
   assetId: string | null;
-  context: string | null;
+  contributorExplanation: string | null;
+  specificCheck: string | null;
   claimedEventAt: Date | null;
   claimedEventTimePrecision: "exact" | "date_only" | "approximate" | "unknown";
   claimedLocationText: string | null;
@@ -198,6 +213,7 @@ export type CivicSubmission = {
   pollingUnitCode: string | null;
   incidentCategory: string | null;
   observationBasis: string | null;
+  restrictedHandling: boolean;
   sensitivityLevel: "standard" | "sensitive" | "restricted";
   contributorEmail: string | null;
 };
@@ -295,7 +311,23 @@ export function parseCivicSubmission(body: unknown): { ok: true; value: CivicSub
     return { ok: false, message: "Add a still image or a link to the post." };
   }
 
-  const context = clip(raw.context, 2000) || null;
+  const contributorExplanation =
+    plainCivicText(raw.contributor_explanation, 2000) || plainCivicText(raw.context, 2000) || null;
+  if (contributorExplanation && contributorExplanation === claimText) {
+    return { ok: false, message: "Put the circulating claim in the claim field. Use explanation for your own comment." };
+  }
+  const specificCheck = plainCivicText(raw.specific_check, 2000) || null;
+  if (caseType === "result_sheet") {
+    if (!specificCheck || specificCheck.length < 10) {
+      return { ok: false, message: "Say what specifically you would like checked." };
+    }
+    if (specificCheck === claimText) {
+      return {
+        ok: false,
+        message: "Keep the general claim and the specific check as separate answers.",
+      };
+    }
+  }
   const dateRaw = clip(raw.claimed_event_on, 40);
   let claimedEventAt: Date | null = null;
   let claimedEventTimePrecision: CivicSubmission["claimedEventTimePrecision"] = "unknown";
@@ -328,9 +360,10 @@ export function parseCivicSubmission(body: unknown): { ok: true; value: CivicSub
   const emailRaw = clip(raw.contributor_email, 200).toLowerCase();
   if (emailRaw && !EMAIL_RE.test(emailRaw)) return { ok: false, message: "Enter a valid email address, or leave it blank." };
 
+  const restrictedHandling = caseType === "incident" && raw.restricted_handling === true;
   let sensitivityLevel: CivicSubmission["sensitivityLevel"] = "standard";
   if (incidentCategory === "violence") sensitivityLevel = "sensitive";
-  if (raw.restricted_handling === true) sensitivityLevel = "restricted";
+  if (restrictedHandling) sensitivityLevel = "restricted";
 
   return {
     ok: true,
@@ -341,7 +374,8 @@ export function parseCivicSubmission(body: unknown): { ok: true; value: CivicSub
       title,
       sourceUrl,
       assetId,
-      context,
+      contributorExplanation,
+      specificCheck: caseType === "result_sheet" ? specificCheck : null,
       claimedEventAt,
       claimedEventTimePrecision,
       claimedLocationText,
@@ -353,6 +387,7 @@ export function parseCivicSubmission(body: unknown): { ok: true; value: CivicSub
       pollingUnitCode: clip(raw.polling_unit_code, 120) || null,
       incidentCategory: caseType === "incident" ? incidentCategory : null,
       observationBasis: caseType === "incident" ? observationBasis : null,
+      restrictedHandling,
       sensitivityLevel,
       contributorEmail: emailRaw || null,
     },

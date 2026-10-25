@@ -53,6 +53,16 @@ describe("civic hardening", () => {
     expect(canSeeContributorIdentity({ id: "reviewer-1", role: "reviewer" }, gate)).toBe(false);
   });
 
+  it("keeps a restricted-handling case off the unassigned editorial queue", () => {
+    const restricted = { ...gate, sensitivityLevel: "restricted" as const };
+    expect(canReadCivicCase({ id: "editor-1", role: "editor" }, restricted)).toBe(false);
+    expect(canPublishCivicCase({ id: "editor-1", role: "editor" }, restricted)).toBe(false);
+    expect(canReadCivicCase({ id: "reviewer-1", role: "editor" }, restricted)).toBe(true);
+    expect(canPublishCivicCase({ id: "reviewer-1", role: "editor" }, restricted)).toBe(true);
+    expect(canSeeContributorIdentity({ id: "reviewer-1", role: "editor" }, restricted)).toBe(false);
+    expect(canSeeContributorIdentity({ id: "safety-1", role: "trust-and-safety" }, restricted)).toBe(false);
+  });
+
   it("keeps capture paid unless a case id is set, and a used link cannot take another frame", () => {
     expect(captureRequiresHold(null)).toBe(true);
     expect(captureRequiresHold("case-id")).toBe(false);

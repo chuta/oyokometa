@@ -635,6 +635,67 @@ main {
   text-underline-offset: 0.15em;
 }
 
+.civic-library-empty {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.4rem 1.25rem 1.5rem;
+}
+
+.civic-library-empty h3 {
+  margin: 0.45rem 0 0.85rem;
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+}
+
+.civic-library-empty p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.civic-library-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.15rem;
+  margin-top: 1.15rem;
+}
+
+.civic-library-empty-actions a:not(.btn) {
+  color: var(--ink);
+  text-underline-offset: 0.15em;
+}
+
+.civic-library {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.civic-library a {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.05rem 1.15rem;
+  text-decoration: none;
+}
+
+.civic-library a:hover,
+.civic-library a:focus-visible {
+  border-color: var(--brand);
+}
+
+.civic-library strong {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-size: 1.05rem;
+}
+
+.civic-library span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .btn,
 .actions button,
 .actions a {
@@ -1991,6 +2052,72 @@ summary {
   max-width: none;
 }
 
+.doc-page ul,
+.doc-page ol {
+  padding-left: 1.2rem;
+}
+
+.doc-page ul {
+  list-style: disc;
+}
+
+.doc-page ol {
+  list-style: decimal;
+}
+
+.doc-page li + li {
+  margin-top: 0.35rem;
+}
+
+.doc-page h2 {
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  margin: 2.25rem 0 0.75rem;
+}
+
+.doc-page h3 {
+  font-size: 1.05rem;
+  margin: 1.35rem 0 0.5rem;
+}
+
+.doc-page .lede {
+  color: var(--muted);
+}
+
+.privacy-meta {
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+}
+
+.privacy-table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0 1.5rem;
+  border: 1px solid var(--line);
+}
+
+.privacy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.privacy-table th,
+.privacy-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.privacy-table th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.privacy-table tr:last-child th,
+.privacy-table tr:last-child td {
+  border-bottom: 0;
+}
+
 @media (min-width: 721px) {
   .about-hero .hero-actions,
   .about-section .hero-actions {
@@ -2080,11 +2207,33 @@ summary {
   gap: 0.35rem;
 }
 
-.intake label:has(input[type="checkbox"]) {
+.intake label:has(input[type="checkbox"]),
+.intake label:has(input[type="radio"]) {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
   margin: 0.8rem 0;
+}
+
+.intake label.choice {
+  display: flex;
+  margin: 0;
+}
+
+.intake-fieldset {
+  border: 1px solid var(--line);
+  margin: 1.1rem 0;
+  padding: 0.9rem 1.05rem 1.05rem;
+}
+
+.intake-fieldset legend {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+
+.intake-fieldset > .field-hint {
+  margin: 0 0 0.75rem;
 }
 
 .intake-grid {
@@ -2178,7 +2327,8 @@ summary {
     width: auto;
   }
   .intake-actions .btn,
-  .service-card .btn {
+  .service-card .btn,
+  .civic-library-empty-actions .btn {
     width: 100%;
     text-align: center;
   }

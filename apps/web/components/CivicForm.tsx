@@ -19,7 +19,8 @@ export function CivicForm({ kind }: { kind: Kind }) {
   const idempotencyKey = useRef(crypto.randomUUID());
   const [claim, setClaim] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [context, setContext] = useState("");
+  const [explanation, setExplanation] = useState("");
+  const [specificCheck, setSpecificCheck] = useState("");
   const [dateUnknown, setDateUnknown] = useState(true);
   const [eventDate, setEventDate] = useState("");
   const [location, setLocation] = useState("");
@@ -38,8 +39,22 @@ export function CivicForm({ kind }: { kind: Kind }) {
 
   const submit = async (form: HTMLFormElement) => {
     if (claim.trim().length < 20) {
-      setError("Describe the claim in at least a sentence.");
+      setError("Describe the claim being checked in at least a sentence.");
       return;
+    }
+    if (explanation.trim() && explanation.trim() === claim.trim()) {
+      setError("Put the circulating claim in the claim field. Use explanation for your own comment.");
+      return;
+    }
+    if (kind === "result_sheet") {
+      if (specificCheck.trim().length < 10) {
+        setError("Say what specifically you would like checked.");
+        return;
+      }
+      if (specificCheck.trim() === claim.trim()) {
+        setError("Keep the general claim and the specific check as separate answers.");
+        return;
+      }
     }
     if (!consent) {
       setError("Confirm the privacy notice before submitting.");
@@ -49,8 +64,16 @@ export function CivicForm({ kind }: { kind: Kind }) {
       setError("Add a still image or a link to the post.");
       return;
     }
-    if (kind === "incident" && (!category || !basis)) {
-      setError("Choose the kind of incident and how you know about it.");
+    if (kind === "incident" && !category) {
+      setError("Choose the kind of incident.");
+      return;
+    }
+    if (kind === "incident" && !basis) {
+      setError("Say whether you witnessed this directly, received it from someone else, or found it online.");
+      return;
+    }
+    if (file && (file.type.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi)$/i.test(file.name))) {
+      setError("This form accepts a still image, not a video file. Paste the link to the post instead.");
       return;
     }
     setPending(true);
@@ -91,7 +114,8 @@ export function CivicForm({ kind }: { kind: Kind }) {
           claim_text: claim,
           source_url: sourceUrl,
           asset_id: assetId,
-          context,
+          contributor_explanation: explanation,
+          specific_check: specificCheck,
           claimed_event_on: dateUnknown ? "" : eventDate,
           claimed_location_text: location,
           election_or_event: election,
@@ -142,14 +166,37 @@ export function CivicForm({ kind }: { kind: Kind }) {
         </p>
       ) : null}
       {kind === "viral_media" ? (
-        <p>A file match does not show whether the caption is true. Still images only. For a video, send the link to the post.</p>
+        <p>A file match does not show whether the caption is true. Attach a still image, or a still frame from a video. Paste the link for the video itself.</p>
       ) : null}
       <label>
-        {kind === "incident" ? "What was reported?" : "Claim to check"}
+        {kind === "incident" ? "What was reported?" : "Claim being checked"}
+        <span className="field-hint">
+          {kind === "incident"
+            ? "What you witnessed, were told, or saw. This is the report, not your later comment on it."
+            : kind === "result_sheet"
+              ? "What is being said about this sheet. You do not have to say that fraud occurred."
+              : "The caption or allegation as it is circulating. This is the claim Oyokometa will assess, not your own view of it."}
+        </span>
         <textarea value={claim} onChange={(e) => setClaim(e.target.value)} required rows={5} maxLength={4000} />
       </label>
+      {kind === "result_sheet" ? (
+        <label>
+          What specifically would you like checked?
+          <span className="field-hint">
+            For example a polling-unit identifier, a particular figure, a missing signature, or a
+            difference between two documents.
+          </span>
+          <textarea
+            value={specificCheck}
+            onChange={(e) => setSpecificCheck(e.target.value)}
+            required
+            rows={4}
+            maxLength={2000}
+          />
+        </label>
+      ) : null}
       {kind === "incident" ? (
-        <div className="intake-grid">
+        <>
           <label>
             Kind of incident
             <select value={category} onChange={(e) => setCategory(e.target.value)} required>
@@ -161,16 +208,56 @@ export function CivicForm({ kind }: { kind: Kind }) {
               ))}
             </select>
           </label>
-          <label>
-            How do you know?
-            <select value={basis} onChange={(e) => setBasis(e.target.value)} required>
-              <option value="">Choose one</option>
-              <option value="witnessed">I witnessed this</option>
-              <option value="told">Someone told me</option>
-              <option value="online">I saw this online</option>
-            </select>
-          </label>
-        </div>
+          <fieldset className="intake-fieldset">
+            <legend>How do you know?</legend>
+            <p className="field-hint">
+              Choose the closest match. Reviewers treat a direct witness report, a second-hand
+              report, and an online find as different kinds of evidence.
+            </p>
+            <div className="choice-grid">
+              <label className="choice">
+                <input
+                  type="radio"
+                  name="observation_basis"
+                  value="witnessed"
+                  checked={basis === "witnessed"}
+                  onChange={() => setBasis("witnessed")}
+                  required
+                />
+                <span>
+                  I witnessed this directly
+                  <span className="field-hint">You were there and saw or heard it yourself.</span>
+                </span>
+              </label>
+              <label className="choice">
+                <input
+                  type="radio"
+                  name="observation_basis"
+                  value="told"
+                  checked={basis === "told"}
+                  onChange={() => setBasis("told")}
+                />
+                <span>
+                  I am reporting information received from someone else
+                  <span className="field-hint">Someone told you. You did not see it yourself.</span>
+                </span>
+              </label>
+              <label className="choice">
+                <input
+                  type="radio"
+                  name="observation_basis"
+                  value="online"
+                  checked={basis === "online"}
+                  onChange={() => setBasis("online")}
+                />
+                <span>
+                  I found this online
+                  <span className="field-hint">You saw a post, message, or broadcast. Send the link if you have one.</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+        </>
       ) : null}
       <label>
         Link to the post or document
@@ -178,10 +265,21 @@ export function CivicForm({ kind }: { kind: Kind }) {
       </label>
       <label>
         Still image, if you have one
+        <span className="field-hint">JPEG, PNG, WebP, HEIC or TIFF. Video files are not accepted.</span>
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const next = e.target.files?.[0] ?? null;
+            if (next && (next.type.startsWith("video/") || /\.(mp4|mov|webm|mkv|avi)$/i.test(next.name))) {
+              e.target.value = "";
+              setFile(null);
+              setError("This form accepts a still image, not a video file. Paste the link to the post instead.");
+              return;
+            }
+            setError(null);
+            setFile(next);
+          }}
         />
       </label>
       {kind === "result_sheet" ? (
@@ -225,21 +323,37 @@ export function CivicForm({ kind }: { kind: Kind }) {
         <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} placeholder="A town or state, not a precise address" />
       </label>
       <label>
-        More context, optional
-        <textarea value={context} onChange={(e) => setContext(e.target.value)} rows={3} maxLength={2000} />
+        Your explanation, optional
+        <span className="field-hint">
+          Why you think this needs checking, or what you noticed. Stored separately from the claim.
+        </span>
+        <textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} rows={3} maxLength={2000} />
       </label>
       <label>
         Email, optional
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={200} />
       </label>
       {kind === "incident" ? (
-        <label>
-          <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} /> Ask for restricted handling
-        </label>
+        <fieldset className="intake-fieldset">
+          <legend>Restricted handling</legend>
+          <label>
+            <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} />
+            <span>Ask for restricted access</span>
+          </label>
+          <p className="field-hint">
+            This asks Oyokometa to limit who can open the case to an assigned reviewer, an assigned
+            editor, and trust-and-safety. It does not guarantee absolute anonymity or confidentiality
+            beyond the <a href="/privacy">privacy notice</a>. An optional email, if you give one, is
+            still stored with the case.
+          </p>
+        </fieldset>
       ) : null}
       <label>
-        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required /> I understand this stays private until a person reviews it, and I have read the{" "}
-        <a href="/privacy">privacy notice</a>.
+        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
+        <span>
+          I understand this stays private until a person reviews it, and I have read the{" "}
+          <a href="/privacy">privacy notice</a>.
+        </span>
       </label>
       <div className="sr-only" aria-hidden="true">
         <label>

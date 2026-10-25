@@ -81,6 +81,26 @@ describe("civic case access", () => {
     expect(canSeeContributorIdentity(safety, row({ sensitivityLevel: "restricted", identityRestricted: false }))).toBe(false);
   });
 
+  it("enforces a restricted-handling request against unassigned editors and identity", () => {
+    const editor = { id: editorId, role: "editor" };
+    const assignedEditor = { id: reviewerId, role: "editor" };
+    const restricted = row({
+      sensitivityLevel: "restricted",
+      identityRestricted: false,
+      workflowStatus: "editor_review",
+      assignedReviewerId: reviewerId,
+    });
+    expect(canReadCivicCase(editor, restricted)).toBe(false);
+    expect(canReadCivicCase(assignedEditor, restricted)).toBe(true);
+    expect(canReadCivicCase({ id: "reviewer-2", role: "reviewer" }, restricted)).toBe(false);
+    expect(canReadCivicCase({ id: reviewerId, role: "reviewer" }, restricted)).toBe(true);
+    expect(canSeeContributorIdentity(assignedEditor, restricted)).toBe(false);
+    expect(canPublishCivicCase(editor, { ...restricted, publicationState: "private", hasPublicVersion: false })).toBe(false);
+    expect(canPublishCivicCase(assignedEditor, { ...restricted, publicationState: "private", hasPublicVersion: false })).toBe(true);
+    expect(canRequestCivicCapture(editor, restricted)).toBe(false);
+    expect(canRequestCivicCapture(assignedEditor, restricted)).toBe(true);
+  });
+
   it("lets an admin assign a case without reading it or seeing the contributor", () => {
     const admin = { id: "admin-1", role: "admin" };
     expect(canAssignCivicCase(admin.role)).toBe(true);
@@ -189,6 +209,24 @@ describe("civic intake parsing", () => {
     expect(parsed.value.locationPrecision).toBe("broad");
     expect(parsed.value.sourceUrl).toBe("https://example.com/post");
     expect(parsed.value.sensitivityLevel).toBe("standard");
+    expect(parsed.value.contributorExplanation).toBeNull();
+  });
+
+  it("keeps the claim and the contributor explanation as separate fields", () => {
+    const parsed = parseCivicSubmission({
+      ...submission,
+      contributor_explanation: "I saw the same clip last week with a different caption.",
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value.claimText).toBe(submission.claim_text);
+    expect(parsed.value.contributorExplanation).toBe("I saw the same clip last week with a different caption.");
+    expect(parseCivicSubmission({ ...submission, contributor_explanation: submission.claim_text }).ok).toBe(false);
+    const alias = parseCivicSubmission({ ...submission, context: "The poster is a known page." });
+    expect(alias.ok).toBe(true);
+    if (!alias.ok) return;
+    expect(alias.value.contributorExplanation).toBe("The poster is a known page.");
+    expect(alias.value.claimText).toBe(submission.claim_text);
   });
 
   it("rejects a missing consent, a script link, and a viral claim with no evidence", () => {
@@ -200,12 +238,32 @@ describe("civic intake parsing", () => {
 
   it("requires an election label for a result sheet and a basis for an incident", () => {
     expect(parseCivicSubmission({ ...submission, case_type: "result_sheet", source_url: "https://example.com/a" }).ok).toBe(false);
+    expect(
+      parseCivicSubmission({
+        ...submission,
+        case_type: "result_sheet",
+        election_or_event: "Not sure",
+      }).ok,
+    ).toBe(false);
     const sheet = parseCivicSubmission({
       ...submission,
       case_type: "result_sheet",
       election_or_event: "Not sure",
+      specific_check: "Compare the accredited-voters figure with the IReV copy.",
     });
     expect(sheet.ok).toBe(true);
+    if (sheet.ok) {
+      expect(sheet.value.specificCheck).toBe("Compare the accredited-voters figure with the IReV copy.");
+      expect(sheet.value.claimText).toBe(submission.claim_text);
+    }
+    expect(
+      parseCivicSubmission({
+        ...submission,
+        case_type: "result_sheet",
+        election_or_event: "Not sure",
+        specific_check: submission.claim_text,
+      }).ok,
+    ).toBe(false);
     expect(
       parseCivicSubmission({
         ...submission,
@@ -226,6 +284,41 @@ describe("civic intake parsing", () => {
     });
     if (!incident.ok) return;
     expect(incident.value.sensitivityLevel).toBe("restricted");
+    expect(incident.value.restrictedHandling).toBe(true);
+    expect(incident.value.observationBasis).toBe("witnessed");
+  });
+
+  it("stores the three observation bases as distinct validated values", () => {
+    const base = {
+      ...submission,
+      case_type: "incident",
+      source_url: "",
+      incident_category: "obstruction",
+    };
+    expect(parseCivicSubmission({ ...base, observation_basis: "witnessed" }).ok).toBe(true);
+    expect(parseCivicSubmission({ ...base, observation_basis: "told" }).ok).toBe(true);
+    expect(parseCivicSubmission({ ...base, observation_basis: "online" }).ok).toBe(true);
+    expect(parseCivicSubmission({ ...base }).ok).toBe(false);
+    expect(parseCivicSubmission({ ...base, observation_basis: "" }).ok).toBe(false);
+    expect(parseCivicSubmission({ ...base, observation_basis: "someone_told_me" }).ok).toBe(false);
+    expect(parseCivicSubmission({ ...base, observation_basis: "I witnessed this directly" }).ok).toBe(false);
+    const told = parseCivicSubmission({ ...base, observation_basis: "told" });
+    expect(told.ok).toBe(true);
+    if (!told.ok) return;
+    expect(told.value.observationBasis).toBe("told");
+    expect(told.value.observationBasis).not.toBe("witnessed");
+    expect(told.value.restrictedHandling).toBe(false);
+    expect(told.value.sensitivityLevel).toBe("standard");
+    const violence = parseCivicSubmission({
+      ...base,
+      incident_category: "violence",
+      observation_basis: "online",
+    });
+    expect(violence.ok).toBe(true);
+    if (!violence.ok) return;
+    expect(violence.value.observationBasis).toBe("online");
+    expect(violence.value.sensitivityLevel).toBe("sensitive");
+    expect(violence.value.restrictedHandling).toBe(false);
   });
 
   it("opens a receipt for the contributor, the same browser, or a matching token", () => {

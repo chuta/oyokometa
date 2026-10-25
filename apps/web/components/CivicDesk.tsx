@@ -34,6 +34,10 @@ type DeskCase = {
   reference: string;
   title: string;
   claim_text: string;
+  contributor_explanation?: string | null;
+  specific_check?: string | null;
+  observation_label?: string | null;
+  restricted_handling?: boolean;
   status_label: string;
   publication_state?: string;
   can_publish?: boolean;
@@ -222,8 +226,23 @@ export function CivicCaptureDesk({ reference }: { reference: string }) {
         <>
           <p className="mono">{desk.reference}</p>
           <p>{desk.status_label}</p>
-          <h2>Claim</h2>
+          {desk.restricted_handling ? (
+            <p>
+              Restricted handling was requested. Identity stays hidden. Only an assigned reviewer,
+              an assigned editor, or trust-and-safety may open this case.
+            </p>
+          ) : null}
+          {desk.observation_label ? <p>{desk.observation_label}</p> : null}
+          <h2>Claim being checked</h2>
           <p>{desk.claim_text}</p>
+          {desk.specific_check ? (
+            <>
+              <h2>What to check</h2>
+              <p>{desk.specific_check}</p>
+            </>
+          ) : null}
+          <h2>Contributor explanation</h2>
+          <p>{desk.contributor_explanation || "None given."}</p>
         </>
       ) : null}
       <form className="intake" onSubmit={(event) => void submit(event)}>
@@ -398,6 +417,9 @@ function CivicPublishPanel({ desk, onSaved }: { desk: DeskCase; onSaved: () => v
           </label>
           <label>
             Claim on the public page
+            <span className="field-hint">
+              The circulating claim being assessed. Do not replace it with the contributor explanation.
+            </span>
             <textarea value={claim} onChange={(e) => setClaim(e.target.value)} rows={3} maxLength={4000} />
           </label>
           <label>

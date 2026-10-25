@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { and, desc, eq, inArray, notInArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, notInArray, or } from "drizzle-orm";
 import { ERROR_CODES } from "@oyokometa/config";
 import { apiError } from "@oyokometa/shared";
 import {
@@ -42,6 +42,7 @@ import {
   parseCivicResolution,
   parseCivicUnpublish,
   parseCivicSubmission,
+  OBSERVATION_BASIS_LABEL,
 } from "../civic.js";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -107,6 +108,8 @@ civicRoutes.post("/civic/cases", async (c) => {
         caseType: submission.caseType,
         title: submission.title,
         claimText: submission.claimText,
+        contributorExplanation: submission.contributorExplanation,
+        specificCheck: submission.specificCheck,
         claimSourceUrl: submission.sourceUrl,
         claimedEventAt: submission.claimedEventAt,
         claimedEventTimePrecision: submission.claimedEventTimePrecision,
@@ -128,6 +131,7 @@ civicRoutes.post("/civic/cases", async (c) => {
         identityRestricted: true,
         incidentCategory: submission.incidentCategory,
         observationBasis: submission.observationBasis,
+        restrictedHandling: submission.restrictedHandling,
       });
       break;
     } catch (err) {
@@ -172,15 +176,6 @@ civicRoutes.post("/civic/cases", async (c) => {
       title: "Source link",
       sourceType: "submission",
       accessedAt: new Date(),
-      addedBy: auth.user?.id ?? null,
-    });
-  }
-  if (submission.context) {
-    await db.insert(civicSources).values({
-      caseId: id,
-      title: "Context",
-      sourceType: "context",
-      reliabilityNotes: submission.context,
       addedBy: auth.user?.id ?? null,
     });
   }
@@ -262,11 +257,17 @@ civicRoutes.get("/civic/cases/:reference", async (c) => {
     .select({ sourceType: civicSources.sourceType, url: civicSources.url, notes: civicSources.reliabilityNotes })
     .from(civicSources)
     .where(eq(civicSources.caseId, row.id));
+  const explanation =
+    row.contributorExplanation ||
+    sources.find((item) => item.sourceType === "context")?.notes ||
+    null;
   return c.json({
     reference: row.publicReference,
     case_type: row.caseType,
     title: row.title,
     claim_text: row.claimText,
+    contributor_explanation: explanation,
+    specific_check: row.specificCheck,
     workflow_status: row.workflowStatus,
     status_label: STATUS_LABEL[row.workflowStatus] ?? row.workflowStatus,
     publication_state: row.publicationState,
@@ -274,8 +275,15 @@ civicRoutes.get("/civic/cases/:reference", async (c) => {
     created_at: row.createdAt,
     what_happens_next: NEXT_STEP,
     contributor_email: row.contributorEmail,
+    observation_basis: row.observationBasis,
+    observation_label: row.observationBasis
+      ? OBSERVATION_BASIS_LABEL[row.observationBasis as keyof typeof OBSERVATION_BASIS_LABEL] ?? row.observationBasis
+      : null,
+    restricted_handling: row.restrictedHandling || row.sensitivityLevel === "restricted",
     evidence: evidence.map((item) => ({ kind: "image", file_name: item.fileName, mime_type: item.mimeType })),
-    sources: sources.map((item) => ({ kind: item.sourceType, url: item.url, notes: item.notes })),
+    sources: sources
+      .filter((item) => item.sourceType !== "context")
+      .map((item) => ({ kind: item.sourceType, url: item.url, notes: item.notes })),
   });
 });
 
@@ -316,7 +324,10 @@ function deskScope(user: { id: string; role: string }) {
   const open = notInArray(civicCases.workflowStatus, [...CIVIC_CAPTURE_BLOCKED]);
   if (user.role === "reviewer") return and(eq(civicCases.assignedReviewerId, user.id), open);
   return and(
-    or(eq(civicCases.assignedReviewerId, user.id), inArray(civicCases.workflowStatus, [...CIVIC_EDITOR_QUEUE])),
+    or(
+      eq(civicCases.assignedReviewerId, user.id),
+      and(inArray(civicCases.workflowStatus, [...CIVIC_EDITOR_QUEUE]), ne(civicCases.sensitivityLevel, "restricted")),
+    ),
     open,
   );
 }
@@ -458,11 +469,28 @@ civicRoutes.get("/civic/desk/:reference", async (c) => {
         .where(eq(civicCaseVersions.id, row.currentPublicVersionId))
         .limit(1)
     : [];
+  let explanation = row.contributorExplanation;
+  if (!explanation) {
+    const [legacy] = await getDb()
+      .select({ notes: civicSources.reliabilityNotes })
+      .from(civicSources)
+      .where(and(eq(civicSources.caseId, row.id), eq(civicSources.sourceType, "context")))
+      .limit(1);
+    explanation = legacy?.notes ?? null;
+  }
   return c.json({
     reference: row.publicReference,
     case_type: row.caseType,
     title: row.title,
     claim_text: row.claimText,
+    contributor_explanation: explanation,
+    specific_check: row.specificCheck,
+    observation_basis: row.observationBasis,
+    observation_label: row.observationBasis
+      ? OBSERVATION_BASIS_LABEL[row.observationBasis as keyof typeof OBSERVATION_BASIS_LABEL] ?? row.observationBasis
+      : null,
+    sensitivity_level: row.sensitivityLevel,
+    restricted_handling: row.restrictedHandling || row.sensitivityLevel === "restricted",
     workflow_status: row.workflowStatus,
     status_label: STATUS_LABEL[row.workflowStatus] ?? row.workflowStatus,
     publication_state: row.publicationState,

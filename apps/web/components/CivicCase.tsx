@@ -84,7 +84,7 @@ export function CivicCase({ page }: { page: PublicCase }) {
         {page.version_number > 1 ? ` · this version ${when(page.published_at)} UTC` : ""}.
       </p>
       {!page.current ? <p>This is an earlier version. The current page is the one an editor last approved.</p> : null}
-      <h2>Claim</h2>
+      <h2>Claim being checked</h2>
       <p>{page.claim_text}</p>
       <h2>{page.assessment_label}</h2>
       <p>{page.assessment_line}</p>

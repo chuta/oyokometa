@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 type Receipt = {
   reference: string;
   claim_text: string;
+  contributor_explanation: string | null;
+  specific_check: string | null;
+  observation_label: string | null;
+  restricted_handling: boolean;
   status_label: string;
   publication_label: string;
   created_at: string;
@@ -98,8 +102,25 @@ export function CivicReceipt({ reference }: { reference: string }) {
           <a href={`/civic/p/${receipt.reference}`}>Open the public case page</a>
         </p>
       ) : null}
-      <h2>Claim</h2>
+      <h2>Claim being checked</h2>
       <p>{receipt.claim_text}</p>
+      {receipt.specific_check ? (
+        <>
+          <h2>What to check</h2>
+          <p>{receipt.specific_check}</p>
+        </>
+      ) : null}
+      {receipt.observation_label ? (
+        <>
+          <h2>How you know</h2>
+          <p>{receipt.observation_label}</p>
+        </>
+      ) : null}
+      {receipt.restricted_handling ? (
+        <p>Restricted access was requested. That request follows the privacy notice. It is not a promise of absolute anonymity.</p>
+      ) : null}
+      <h2>Your explanation</h2>
+      <p>{receipt.contributor_explanation || "None given."}</p>
       {receipt.evidence.length ? (
         <>
           <h2>Image</h2>

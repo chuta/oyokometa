@@ -12,7 +12,11 @@ export default function IncidentCivicPage() {
     <article className="page">
       <p className="kicker">Civic Evidence</p>
       <h1 className="text-4xl mb-3">Report an election incident</h1>
-      <p className="text-muted mb-4">Say what you witnessed, what someone told you, or what you saw online.</p>
+      <p className="text-muted mb-4">
+        Say whether you witnessed this directly, are reporting what someone else told you, or found
+        it online. Restricted handling limits who can open the case. It does not promise absolute
+        anonymity.
+      </p>
       <CivicForm kind="incident" />
     </article>
   );
